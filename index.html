@@ -1,0 +1,3755 @@
+<title>Track Runner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Handjet:wght@400;500;600;700&display=swap">
+<style>
+/* ============================================================
+   TRACK RUNNER — personal learning planner
+   Design tokens. Light is the base; dark redefines tokens only.
+   ============================================================ */
+:root{
+  color-scheme: light dark;
+
+  /* ground + surfaces — warm paper with a clay hue bias */
+  --paper:      #F3EFE6;
+  --paper-2:    #EBE5D8;
+  --surface:    #FDFAF4;
+  --surface-2:  #F0EADC;
+  --sunk:       #E4DDCC;
+
+  /* ink */
+  --ink:        #211E1A;
+  --ink-2:      #6B6355;
+  --ink-3:      #978E7D;
+
+  /* structure */
+  --line:       #211E1A;
+  --line-2:     rgba(33,30,26,.18);
+  --line-3:     rgba(33,30,26,.09);
+  --shadow-c:   #211E1A;
+  --shadow-a:   .9;
+
+  /* accent — Claude clay */
+  --clay:       #D97757;
+  --clay-ink:   #A0451D;
+  --clay-soft:  #F6DED1;
+
+  /* semantic — separate from accent */
+  --moss:       #4A7A52;
+  --moss-soft:  #DCE8D9;
+  --slate:      #41558C;
+  --slate-soft: #DBE1F1;
+  --amber:      #9A6E16;
+  --amber-soft: #F3E5C2;
+  --rust:       #9E3B2E;
+
+  /* metrics */
+  --rail: 264px;
+  --pad: clamp(14px, 2.4vw, 28px);
+  --r: 0px;
+  --sh: 3px 3px 0 var(--shadow-c);
+  --sh-lg: 5px 5px 0 var(--shadow-c);
+}
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+  --paper:      #14120F;
+  --paper-2:    #1A1713;
+  --surface:    #201C17;
+  --surface-2:  #2A251E;
+  --sunk:       #17140F;
+  --ink:        #F2ECE0;
+  --ink-2:      #A79D8C;
+  --ink-3:      #7A7263;
+  --line:       #4E4638;
+  --line-2:     rgba(242,236,224,.16);
+  --line-3:     rgba(242,236,224,.08);
+  --shadow-c:   #000000;
+  --clay:       #E08A6B;
+  --clay-ink:   #EFA98D;
+  --clay-soft:  #40261C;
+  --moss:       #7FAF7F;
+  --moss-soft:  #21301F;
+  --slate:      #93A6DE;
+  --slate-soft: #1E2436;
+  --amber:      #D9AE55;
+  --amber-soft: #332714;
+  --rust:       #E0705C;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:      #14120F;
+  --paper-2:    #1A1713;
+  --surface:    #201C17;
+  --surface-2:  #2A251E;
+  --sunk:       #17140F;
+  --ink:        #F2ECE0;
+  --ink-2:      #A79D8C;
+  --ink-3:      #7A7263;
+  --line:       #4E4638;
+  --line-2:     rgba(242,236,224,.16);
+  --line-3:     rgba(242,236,224,.08);
+  --shadow-c:   #000000;
+  --clay:       #E08A6B;
+  --clay-ink:   #EFA98D;
+  --clay-soft:  #40261C;
+  --moss:       #7FAF7F;
+  --moss-soft:  #21301F;
+  --slate:      #93A6DE;
+  --slate-soft: #1E2436;
+  --amber:      #D9AE55;
+  --amber-soft: #332714;
+  --rust:       #E0705C;
+}
+
+/* ---------- base ---------- */
+*{ box-sizing: border-box; }
+html{ -webkit-text-size-adjust: 100%; }
+body{
+  margin:0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: color-mix(in srgb, var(--clay) 26%, transparent);
+}
+h1,h2,h3,h4{
+  font-family: "Alegreya", ui-serif, Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  line-height: 1.12;
+  text-wrap: balance;
+  margin: 0;
+  letter-spacing: -.012em;
+}
+p{ margin:0; }
+a{ color: var(--clay-ink); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover{ color: var(--ink); }
+button, input, select, textarea{ font: inherit; color: inherit; }
+:where(button,[href],input,select,textarea,summary,[tabindex]):focus-visible{
+  outline: 2px solid var(--clay);
+  outline-offset: 2px;
+}
+::selection{ background: var(--clay); color: #fff; }
+[hidden]{ display: none !important; }
+
+/* ---------- pixel primitives ---------- */
+.mono{ font-family:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+.px{
+  font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  font-size: 12px;
+  line-height: 1;
+}
+.dither{
+  background-image: radial-gradient(var(--line-2) 1px, transparent 1px);
+  background-size: 4px 4px;
+}
+.px.faint{ color: var(--ink-2); }
+.px.muted{ color: var(--ink-2); }
+.scan{
+  background-image: repeating-linear-gradient(0deg, var(--line-3) 0 1px, transparent 1px 3px);
+}
+
+/* card: hard pixel frame */
+.card{
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--sh);
+}
+.card--flat{ box-shadow: none; }
+.card--sunk{ background: var(--surface-2); box-shadow: none; }
+
+/* buttons */
+.btn{
+  display:inline-flex; align-items:center; gap:7px;
+  font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace;
+  font-weight: 500; text-transform: uppercase; letter-spacing:.04em; font-size: 13px; line-height:1;
+  padding: 8px 12px 7px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 2px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--sh);
+  cursor: pointer;
+  transition: transform .08s steps(2,end), box-shadow .08s steps(2,end), background-color .12s linear, color .12s linear;
+  white-space: nowrap;
+}
+.btn:hover{ background: var(--surface-2); }
+.btn:active{ transform: translate(3px,3px); box-shadow: 0 0 0 var(--shadow-c); }
+.btn--primary{ background: var(--clay); color:#1a0f09; border-color: var(--line); }
+.btn--primary:hover{ background: color-mix(in srgb, var(--clay) 84%, var(--ink)); color:#1a0f09; }
+.btn--ghost{ background: transparent; box-shadow:none; border-color: var(--line-2); }
+.btn--ghost:hover{ background: var(--surface-2); border-color: var(--line); }
+.btn--ghost:active{ transform:none; }
+.btn--sm{ padding: 6px 9px 5px; font-size: 12px; }
+.btn--danger:hover{ background: var(--rust); color: #fff; border-color: var(--rust); }
+.btn[disabled]{ opacity:.42; cursor: not-allowed; box-shadow:none; }
+.iconbtn{
+  display:inline-grid; place-items:center;
+  width:32px; height:32px; padding:0;
+  background: transparent; color: var(--ink-2);
+  border: 2px solid transparent; border-radius: var(--r);
+  cursor:pointer;
+  transition: color .12s linear, background-color .12s linear, border-color .12s linear;
+}
+.iconbtn:hover{ color: var(--ink); background: var(--surface-2); border-color: var(--line-2); }
+.iconbtn svg{ width:16px; height:16px; }
+
+/* chips + badges */
+.chip{
+  display:inline-flex; align-items:center; gap:5px;
+  font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace; font-weight:500; font-size:11.5px; line-height:1;
+  text-transform: uppercase; letter-spacing:.04em;
+  padding: 5px 7px 4px;
+  border: 1.5px solid var(--line-2);
+  border-radius: var(--r);
+  color: var(--ink-2);
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+.chip--done{ color: var(--moss); background: var(--moss-soft); border-color: color-mix(in srgb, var(--moss) 45%, transparent); }
+.chip--doing{ color: var(--slate); background: var(--slate-soft); border-color: color-mix(in srgb, var(--slate) 45%, transparent); }
+.chip--todo{ color: var(--ink-2); }
+.chip--warn{ color: var(--amber); background: var(--amber-soft); border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
+.chip--clay{ color: var(--clay-ink); background: var(--clay-soft); border-color: color-mix(in srgb, var(--clay) 50%, transparent); }
+
+/* segmented pixel progress bar */
+.bar{
+  position: relative;
+  height: 12px;
+  border: 2px solid var(--line);
+  background: var(--sunk);
+  overflow: hidden;
+}
+.bar__fill{
+  height:100%;
+  background: var(--clay);
+  background-image: repeating-linear-gradient(90deg, transparent 0 5px, color-mix(in srgb, var(--shadow-c) 26%, transparent) 5px 7px);
+  transition: width .45s cubic-bezier(.2,.8,.2,1);
+}
+.bar--moss .bar__fill{ background-color: var(--moss); }
+.bar--slate .bar__fill{ background-color: var(--slate); }
+.bar--sm{ height: 8px; border-width: 1.5px; }
+.bar--lg{ height: 20px; }
+
+/* pixel checkbox */
+.pcheck{
+  appearance: none; -webkit-appearance:none;
+  flex: 0 0 auto;
+  width: 18px; height: 18px; margin: 0;
+  border: 2px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  display: grid; place-items:center;
+  transition: background-color .12s linear, border-color .12s linear;
+}
+.pcheck::after{
+  content:"";
+  width:10px; height:10px;
+  background: transparent;
+  clip-path: polygon(0 40%, 20% 40%, 20% 60%, 40% 60%, 40% 80%, 60% 80%, 60% 60%, 80% 60%, 80% 40%, 100% 40%, 100% 20%, 80% 20%, 80% 0, 60% 0, 60% 20%, 40% 20%, 40% 40%, 20% 40%, 20% 20%, 0 20%);
+  transform: scale(.2);
+  transition: transform .14s steps(3,end), background-color .1s linear;
+}
+.pcheck:checked{ background: var(--moss); border-color: var(--moss); }
+.pcheck:checked::after{ background: var(--surface); transform: scale(1); }
+.pcheck:hover{ border-color: var(--clay); }
+
+/* inputs */
+.field{
+  width:100%;
+  padding: 9px 10px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 2px solid var(--line-2);
+  border-radius: var(--r);
+  font-size: 14px;
+  transition: border-color .12s linear, background-color .12s linear;
+}
+.field::placeholder{ color: var(--ink-3); }
+.field:focus{ border-color: var(--clay); outline: none; }
+.field:focus-visible{ outline: none; }
+textarea.field{ resize: vertical; min-height: 76px; line-height:1.5; font-family: inherit; }
+select.field{ background-color: var(--surface); color: var(--ink); }
+.lab{
+  display:block; margin-bottom: 5px;
+  font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace; font-weight:500; font-size:12px;
+  text-transform: uppercase; letter-spacing:.05em; color: var(--ink-2);
+}
+.formgrid{ display:grid; gap: 13px; }
+.formrow{ display:grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+@media (max-width: 560px){ .formrow{ grid-template-columns: 1fr; } }
+
+/* ============================================================
+   Shell
+   ============================================================ */
+.shell{ min-height: 100dvh; display:flex; flex-direction: column; }
+
+.topbar{
+  position: sticky; top: 0; z-index: 40;
+  display:flex; align-items:center; gap: 12px;
+  padding: 10px var(--pad);
+  padding-top: max(10px, env(safe-area-inset-top));
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 2px solid var(--line);
+}
+.brand{ display:flex; align-items:center; gap: 10px; min-width:0; }
+.brand__mark{
+  width: 30px; height: 30px; flex:0 0 auto;
+  border: 2px solid var(--line);
+  background: var(--clay);
+  display:grid; place-items:center;
+  box-shadow: var(--sh);
+}
+.brand__mark svg{ width: 18px; height: 18px; }
+.brand__txt{ min-width:0; }
+.brand__name{
+  font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace; font-weight:700; font-size: 16px; letter-spacing:.02em;
+  text-transform: uppercase; line-height:1.05;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.brand__sub{ font-size: 11px; color: var(--ink-3); line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.topbar__spacer{ flex:1 1 auto; }
+.topbar__tools{ display:flex; align-items:center; gap: 6px; }
+
+.savechip{
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace; font-weight:500; font-size:11.5px; text-transform:uppercase; letter-spacing:.04em;
+  padding: 6px 8px 5px;
+  border: 1.5px solid var(--line-2);
+  color: var(--ink-2);
+  background: var(--surface);
+  white-space: nowrap;
+}
+.savechip__dot{ width:7px; height:7px; background: var(--ink-3); flex:0 0 auto; }
+.savechip[data-state="saving"] .savechip__dot{ background: var(--amber); animation: blink 1s steps(2,end) infinite; }
+.savechip[data-state="saved"] .savechip__dot{ background: var(--moss); }
+.savechip[data-state="local"] .savechip__dot{ background: var(--slate); }
+.savechip[data-state="error"] .savechip__dot{ background: var(--rust); }
+@keyframes blink{ 50%{ opacity:.25 } }
+
+.body{ display:flex; align-items: flex-start; flex: 1 1 auto; min-height:0; }
+
+/* ---------- rail ---------- */
+.rail{
+  width: var(--rail); flex: 0 0 var(--rail);
+  align-self: stretch;
+  border-right: 2px solid var(--line);
+  padding: 16px 14px calc(24px + env(safe-area-inset-bottom));
+  display:flex; flex-direction: column; gap: 18px;
+  position: sticky; top: var(--topbar-h, 54px);
+  max-height: calc(100dvh - var(--topbar-h, 54px));
+  overflow-y: auto;
+  background: var(--paper-2);
+  z-index: 30;
+}
+.rail__group{ display:flex; flex-direction:column; gap: 7px; }
+.rail__title{
+  font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace; font-weight:500; font-size:12px; text-transform:uppercase;
+  letter-spacing:.06em; color: var(--ink-3); padding: 0 2px 2px;
+  display:flex; align-items:center; justify-content:space-between; gap:6px;
+}
+.navbtn{
+  display:flex; align-items:center; gap: 9px;
+  width:100%; text-align:left;
+  padding: 8px 9px;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: var(--r);
+  cursor: pointer;
+  color: var(--ink-2);
+  font-size: 13.5px; font-weight: 500;
+  transition: background-color .12s linear, color .12s linear, border-color .12s linear;
+}
+.navbtn svg{ width:15px; height:15px; flex:0 0 auto; opacity:.8; }
+.navbtn:hover{ background: var(--surface-2); color: var(--ink); }
+.navbtn[aria-current="page"]{
+  background: var(--surface); color: var(--ink); font-weight: 600;
+  border-color: var(--line); box-shadow: 2px 2px 0 var(--shadow-c);
+}
+.navbtn[aria-current="page"] svg{ opacity:1; color: var(--clay-ink); }
+.navbtn__count{ margin-left:auto; font-family:"IBM Plex Mono",monospace; font-size:11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+.trackbtn{
+  display:block; width:100%; text-align:left;
+  padding: 9px 10px;
+  background: var(--surface); color: var(--ink);
+  border: 2px solid var(--line-2); border-radius: var(--r);
+  cursor:pointer;
+  transition: border-color .12s linear, box-shadow .08s steps(2,end), transform .08s steps(2,end);
+}
+.trackbtn:hover{ border-color: var(--line); }
+.trackbtn[aria-current="true"]{ border-color: var(--line); box-shadow: 3px 3px 0 var(--shadow-c); }
+.trackbtn__name{ font-size:13px; font-weight:600; line-height:1.25; margin-bottom:6px; }
+.trackbtn__meta{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px; }
+
+.railstat{ display:grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.railstat__cell{ border:2px solid var(--line-2); padding: 8px 9px; background: var(--surface); }
+.railstat__k{ font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace; font-weight:500; font-size:11px; letter-spacing:.05em; text-transform:uppercase; color: var(--ink-3); }
+.railstat__v{ font-family:"IBM Plex Mono",monospace; font-size:17px; font-weight:600; font-variant-numeric: tabular-nums; line-height:1.2; margin-top:2px; }
+
+/* ---------- main ---------- */
+.main{
+  flex: 1 1 auto; min-width: 0;
+  padding: var(--pad);
+  padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  display:flex; flex-direction:column; gap: 20px;
+}
+.wrap{ width:100%; max-width: 1080px; }
+.view{ display:flex; flex-direction:column; gap: 20px; animation: fadein .22s ease-out; }
+@keyframes fadein{ from{ opacity:0; transform: translateY(4px) } }
+
+.viewhead{ display:flex; align-items: flex-end; justify-content:space-between; gap: 14px; flex-wrap: wrap; }
+.viewhead h1{ font-size: clamp(24px, 3.4vw, 34px); }
+.viewhead__sub{ color: var(--ink-2); font-size: 13.5px; max-width: 62ch; margin-top: 6px; }
+
+.sechead{ display:flex; align-items:center; gap:10px; margin-bottom: 2px; }
+.sechead h2{ font-size: 17px; }
+.sechead__rule{ flex:1 1 auto; height:0; border-top: 2px dotted var(--line-2); }
+
+/* mobile: rail becomes a scroll strip */
+@media (max-width: 900px){
+  .body{ flex-direction: column; align-items: stretch; }
+  .rail{
+    width:100%; flex: 0 0 auto; max-height:none;
+    position: sticky; top: var(--topbar-h, 54px); z-index: 30;
+    border-right: none; border-bottom: 2px solid var(--line);
+    flex-direction: row; overflow-x: auto; overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    gap: 12px; padding: 9px var(--pad); align-items: center;
+    scrollbar-width: thin;
+    background: var(--paper-2);
+  }
+  .main{ scroll-padding-top: 0; }
+  .rail__group{ flex-direction: row; align-items:center; gap: 6px; flex: 0 0 auto; }
+  .rail__title{ display:none; }
+  .navbtn{ width:auto; padding: 7px 10px; }
+  .navbtn__count{ margin-left: 4px; }
+  .rail__group--tracks{ order: -1; }
+  .trackbtn{ width: auto; min-width: 132px; max-width: 190px; padding: 7px 9px; }
+  .trackbtn__name{ margin-bottom: 4px; font-size: 12.5px; }
+  .railstat{ display:none; }
+  .rail__group--stats{ display:none; }
+}
+</style>
+<style>
+/* ============================================================
+   Overview
+   ============================================================ */
+.hero{
+  display:grid;
+  grid-template-columns: minmax(0,1.35fr) minmax(0,1fr);
+  gap: 0;
+  border: 2px solid var(--line);
+  box-shadow: var(--sh-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+@media (max-width: 780px){ .hero{ grid-template-columns: 1fr; } }
+.hero__left{ padding: clamp(16px,2.6vw,26px); display:flex; flex-direction:column; gap: 16px; min-width:0; }
+.hero__right{
+  padding: clamp(16px,2.6vw,26px);
+  border-left: 2px solid var(--line);
+  background: var(--paper-2);
+  background-image: radial-gradient(var(--line-3) 1px, transparent 1px);
+  background-size: 4px 4px;
+  display:flex; flex-direction:column; gap: 16px; min-width:0;
+}
+@media (max-width: 780px){ .hero__right{ border-left:none; border-top: 2px solid var(--line); } }
+.hero__eyebrow{ display:flex; align-items:center; gap: 8px; flex-wrap: wrap; }
+.hero__title{ font-size: clamp(26px, 4.2vw, 40px); }
+.hero__note{ color: var(--ink-2); font-size: 14px; max-width: 52ch; }
+
+.levelbox{ display:flex; align-items:stretch; gap: 14px; }
+.levelbox__tile{
+  flex: 0 0 auto; width: 78px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap: 2px;
+  padding: 9px 4px 11px;
+  border: 2px solid var(--line);
+  background: var(--clay);
+  color: #1a0f09;
+  box-shadow: var(--sh);
+}
+.levelbox__lab{
+  font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace;
+  font-weight:600; font-size: 12px; letter-spacing:.14em; text-transform: uppercase; line-height:1;
+}
+.levelbox__num{
+  font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace;
+  font-weight: 700; font-size: 46px; line-height:.84; letter-spacing:-.02em;
+}
+.levelbox__meta{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:8px; }
+.levelbox__row{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+.levelbox__row .px{ color: var(--ink-2); }
+
+.statgrid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(120px,1fr)); gap: 10px; }
+.stat{
+  border: 2px solid var(--line);
+  background: var(--surface);
+  padding: 11px 12px;
+  display:flex; flex-direction:column; gap: 4px;
+  min-width: 0;
+}
+.stat__k{ font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace; font-weight:500; font-size:11.5px; letter-spacing:.05em; text-transform:uppercase; color: var(--ink-3); }
+.stat__v{ font-family:"IBM Plex Mono",monospace; font-size: 22px; font-weight:600; line-height:1.1; font-variant-numeric: tabular-nums; }
+.stat__v small{ font-size: 12px; color: var(--ink-3); font-weight:500; }
+.stat__hint{ font-size: 11.5px; color: var(--ink-3); }
+
+/* step ladder */
+.ladder{ display:flex; flex-direction:column; gap: 10px; }
+.step{
+  display:grid; grid-template-columns: 46px minmax(0,1fr) auto;
+  align-items:center; gap: 13px;
+  padding: 12px 14px;
+  border: 2px solid var(--line-2);
+  background: var(--surface);
+  text-align:left; width:100%; cursor:pointer;
+  transition: border-color .12s linear, transform .08s steps(2,end), box-shadow .08s steps(2,end);
+}
+.step:hover{ border-color: var(--line); box-shadow: 3px 3px 0 var(--shadow-c); transform: translate(-1px,-1px); }
+.step__n{
+  font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace; font-weight:700; font-size: 24px; line-height:1;
+  display:grid; place-items:center; height: 40px;
+  border: 2px solid var(--line); background: var(--paper-2); color: var(--ink-2);
+}
+.step--done .step__n{ background: var(--moss); color: var(--surface); border-color: var(--moss); }
+.step--doing .step__n{ background: var(--clay); color: #1a0f09; border-color: var(--line); }
+.step__body{ min-width:0; display:flex; flex-direction:column; gap:6px; }
+.step__name{ font-weight:600; font-size: 14.5px; line-height:1.25; }
+.step__meta{ font-size: 11.5px; color: var(--ink-3); display:flex; gap:8px; flex-wrap:wrap; }
+.step__pct{ font-family:"IBM Plex Mono",monospace; font-size: 15px; font-weight:600; font-variant-numeric: tabular-nums; min-width: 46px; text-align:right; }
+@media (max-width: 560px){
+  .step{ grid-template-columns: 38px minmax(0,1fr); }
+  .step__pct{ grid-column: 2; text-align:left; }
+  .step__n{ height:34px; font-size:16px; }
+}
+
+/* two-column blocks */
+.cols{ display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 20px; align-items:start; }
+@media (max-width: 860px){ .cols{ grid-template-columns: 1fr; } }
+
+.panel{ border:2px solid var(--line); background: var(--surface); box-shadow: var(--sh); }
+.panel__head{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding: 11px 14px;
+  border-bottom: 2px solid var(--line);
+  background: var(--paper-2);
+}
+.panel__title{ font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace; font-weight:600; font-size: 13px; letter-spacing:.04em; text-transform:uppercase; }
+.panel__body{ padding: 13px 14px; display:flex; flex-direction:column; gap: 11px; }
+.panel__body--tight{ padding: 6px 0; gap:0; }
+
+.nextlist{ display:flex; flex-direction:column; }
+.nextrow{
+  display:flex; align-items:flex-start; gap: 10px;
+  padding: 9px 14px;
+  border-bottom: 1px dotted var(--line-2);
+}
+.nextrow:last-child{ border-bottom:none; }
+.nextrow:hover{ background: var(--surface-2); }
+.nextrow__txt{ flex:1 1 auto; min-width:0; font-size: 13.5px; line-height:1.45; }
+.nextrow__where{ font-size: 11px; color: var(--ink-3); margin-top: 3px; }
+.nextrow__txt.is-done{ text-decoration: line-through; color: var(--ink-3); }
+
+.empty{
+  padding: 22px 16px; text-align:center;
+  color: var(--ink-3); font-size: 13px;
+  border: 2px dashed var(--line-2);
+  display:flex; flex-direction:column; gap: 10px; align-items:center;
+}
+.empty__ico{ opacity:.5; }
+
+/* ============================================================
+   Plan tree
+   ============================================================ */
+.toolbar{
+  display:flex; align-items:center; gap: 9px; flex-wrap: wrap;
+  padding: 10px 12px;
+  border:2px solid var(--line); background: var(--surface); box-shadow: var(--sh);
+}
+.toolbar__search{ flex: 1 1 220px; min-width: 160px; position: relative; display:flex; align-items:center; }
+.toolbar__search svg{ position:absolute; left:9px; width:15px; height:15px; color: var(--ink-3); pointer-events:none; }
+.toolbar__search .field{ padding-left: 30px; }
+.segmented{ display:inline-flex; border:2px solid var(--line); background: var(--surface); }
+.segmented button{
+  font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace; font-weight:500; font-size:12.5px; text-transform:uppercase; letter-spacing:.04em;
+  padding: 8px 10px 7px; background: transparent; border:none; cursor:pointer; color: var(--ink-2);
+  border-right: 2px solid var(--line-2);
+  transition: background-color .12s linear, color .12s linear;
+}
+.segmented button:last-child{ border-right:none; }
+.segmented button:hover{ background: var(--surface-2); color: var(--ink); }
+.segmented button[aria-pressed="true"]{ background: var(--clay); color: #1a0f09; }
+
+.stepblock{ display:flex; flex-direction:column; gap: 12px; scroll-margin-top: calc(var(--topbar-h, 54px) + 18px); }
+.stepblock__head{
+  display:flex; align-items:center; gap: 12px; flex-wrap: wrap;
+  padding: 13px 15px;
+  border: 2px solid var(--line);
+  background: var(--paper-2);
+  background-image: repeating-linear-gradient(135deg, var(--line-3) 0 2px, transparent 2px 6px);
+  box-shadow: var(--sh);
+}
+.stepblock__tag{
+  font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace; font-weight:700; font-size: 15px; letter-spacing:.03em; text-transform: uppercase;
+  padding: 6px 9px 5px; border:2px solid var(--line); background: var(--clay); color:#1a0f09;
+}
+.stepblock__name{ font-size: 18px; flex:1 1 auto; min-width: 0; }
+.stepblock__art{ font-size: 12px; color: var(--ink-2); width:100%; display:flex; gap:6px; align-items:baseline; }
+
+.phase{
+  border:2px solid var(--line); background: var(--surface); box-shadow: var(--sh);
+  scroll-margin-top: calc(var(--topbar-h, 54px) + 18px);
+  content-visibility: auto; contain-intrinsic-size: auto 64px;
+}
+.phase--project{ border-color: var(--clay); }
+.phase__head{
+  display:flex; align-items:center; gap: 11px;
+  width:100%; text-align:left; cursor:pointer;
+  padding: 12px 14px;
+  background: transparent; border:none;
+  transition: background-color .12s linear;
+}
+.phase__head:hover{ background: var(--surface-2); }
+.phase__caret{ flex:0 0 auto; width:14px; height:14px; color: var(--ink-3); transition: transform .18s steps(3,end); }
+.phase[data-open="true"] .phase__caret{ transform: rotate(90deg); }
+.phase__title{ flex:1 1 auto; min-width:0; }
+.phase__name{ font-family:"Alegreya",ui-serif,Georgia,serif; font-size: 17px; font-weight:600; line-height:1.25; }
+.phase__goal{ font-size: 12.5px; color: var(--ink-2); margin-top: 4px; max-width: 68ch; }
+.phase__right{ display:flex; align-items:center; gap: 10px; flex:0 0 auto; }
+.phase__ratio{ font-family:"IBM Plex Mono",monospace; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.phase__minibar{ width: 68px; }
+@media (max-width: 620px){ .phase__minibar{ display:none; } }
+.phase__inner{ border-top: 2px solid var(--line-2); padding: 4px 0 10px; }
+
+.matlist{ padding: 11px 14px 3px; display:flex; flex-direction:column; gap: 6px; }
+.matgrid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 4px; }
+.matrow{
+  display:flex; align-items: flex-start; gap: 7px;
+  font-size: 12.5px; line-height:1.4; padding: 5px 6px 5px 7px;
+  background: var(--surface-2); border-left: 3px solid var(--clay);
+  min-width: 0;
+}
+.matrow:hover{ background: var(--clay-soft); }
+.matrow__ico{ flex:0 0 auto; margin-top:2px; color: var(--clay-ink); }
+.matrow__ico svg{ width:12px; height:12px; display:block; }
+.matrow__body{ min-width:0; flex:1 1 auto; overflow-wrap: anywhere; }
+.matrow__note{ color: var(--ink-3); font-size: 11.5px; }
+.matrow .iconbtn{ opacity: 0; transition: opacity .12s linear; }
+.matrow:hover .iconbtn, .matrow:focus-within .iconbtn{ opacity: 1; }
+@media (hover: none){ .matrow .iconbtn{ opacity:.6; } }
+
+.section{ padding: 10px 14px 2px; }
+.section__head{ display:flex; align-items:baseline; gap: 9px; flex-wrap:wrap; margin-bottom: 7px; }
+.section__name{ font-weight:600; font-size: 13.5px; }
+.section__note{ font-size: 12px; color: var(--ink-2); margin: 0 0 8px; max-width: 70ch; }
+.tasks{ display:flex; flex-direction:column; gap: 1px; }
+.task{
+  display:flex; align-items: flex-start; gap: 10px;
+  padding: 6px 6px 6px 2px;
+  transition: background-color .12s linear;
+}
+.task:hover{ background: var(--surface-2); }
+.task:hover .task__act{ opacity: 1; }
+.task__lab{ flex:1 1 auto; min-width:0; display:flex; gap:10px; align-items:flex-start; cursor:pointer; }
+.task__txt{ font-size: 13.5px; line-height: 1.5; overflow-wrap: anywhere; }
+.task__txt code{ font-family:"IBM Plex Mono",monospace; font-size: 12.5px; background: var(--surface-2); padding: 1px 4px; border:1px solid var(--line-3); }
+.task.is-done .task__txt{ color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 1px; }
+.task__date{ font-family:"IBM Plex Mono",monospace; font-size:10.5px; color: var(--moss); white-space:nowrap; flex:0 0 auto; margin-top:3px; font-variant-numeric: tabular-nums; }
+.task__act{ opacity:0; transition: opacity .12s linear; display:flex; gap:2px; flex:0 0 auto; }
+@media (hover: none){ .task__act{ opacity:.65; } }
+.task__note{ font-size: 12px; color: var(--ink-2); border-left: 2px solid var(--clay); padding-left: 8px; margin-top: 5px; }
+
+.checkpoint{
+  margin: 12px 14px 4px;
+  padding: 11px 13px;
+  border: 2px dashed var(--line-2);
+  background: var(--paper-2);
+  font-size: 13px; color: var(--ink-2);
+  display:flex; gap: 10px; align-items:flex-start;
+}
+.checkpoint__ico{ color: var(--clay-ink); flex:0 0 auto; margin-top:1px; }
+.checkpoint__ico svg{ width:15px; height:15px; display:block; }
+.checkpoint b{ color: var(--ink); }
+
+.addline{ padding: 6px 14px 12px; }
+.addline .btn{ width:100%; justify-content:center; }
+
+/* ============================================================
+   Cards grid (courses / resources)
+   ============================================================ */
+.grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(268px,1fr)); gap: 14px; }
+.ccard{
+  display:flex; flex-direction:column; gap: 10px;
+  padding: 14px;
+  border: 2px solid var(--line); background: var(--surface);
+  box-shadow: var(--sh);
+  min-width: 0;
+  transition: transform .1s steps(2,end), box-shadow .1s steps(2,end);
+}
+.ccard:hover{ transform: translate(-2px,-2px); box-shadow: var(--sh-lg); }
+.ccard__top{ display:flex; align-items:flex-start; justify-content:space-between; gap: 8px; }
+.ccard__name{ font-weight:600; font-size: 14.5px; line-height:1.3; overflow-wrap:anywhere; }
+.ccard__prov{ font-size: 11.5px; color: var(--ink-3); margin-top: 3px; }
+.ccard__foot{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:auto; padding-top: 4px; }
+.ccard__note{ font-size: 12.5px; color: var(--ink-2); border-top: 1px dotted var(--line-2); padding-top: 8px; overflow-wrap:anywhere; }
+.ccard__tags{ display:flex; gap:5px; flex-wrap:wrap; }
+.ccard__acts{ display:flex; gap: 2px; flex: 0 0 auto; }
+.ccard__link{ font-size: 12.5px; overflow-wrap:anywhere; display:inline-flex; align-items:center; gap:5px; }
+.ccard__link svg{ width:12px; height:12px; flex:0 0 auto; }
+.ccard--res{ box-shadow: 2px 2px 0 var(--shadow-c); }
+.ccard--res:hover{ box-shadow: var(--sh); }
+
+/* pixel range slider */
+.pxrange{
+  -webkit-appearance:none; appearance:none;
+  width:100%; height: 16px; margin: 2px 0 0; padding:0;
+  background: transparent; cursor: pointer;
+}
+.pxrange::-webkit-slider-runnable-track{
+  height: 8px; background: var(--sunk); border: 2px solid var(--line);
+}
+.pxrange::-moz-range-track{
+  height: 8px; background: var(--sunk); border: 2px solid var(--line);
+}
+.pxrange::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none;
+  width: 14px; height: 14px; margin-top: -5px;
+  background: var(--clay); border: 2px solid var(--line); border-radius: 0;
+}
+.pxrange::-moz-range-thumb{
+  width: 12px; height: 12px;
+  background: var(--clay); border: 2px solid var(--line); border-radius: 0;
+}
+.pxrange:hover::-webkit-slider-thumb{ background: var(--clay-ink); }
+.pxrange:hover::-moz-range-thumb{ background: var(--clay-ink); }
+
+.filters{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+.tagbtn{
+  font-family:"IBM Plex Mono",monospace; font-size:11.5px;
+  padding: 4px 8px; cursor:pointer;
+  border:1.5px solid var(--line-2); background: var(--surface); color: var(--ink-2);
+  transition: border-color .12s linear, color .12s linear, background-color .12s linear;
+}
+.tagbtn:hover{ border-color: var(--line); color: var(--ink); }
+.tagbtn[aria-pressed="true"]{ background: var(--clay); border-color: var(--line); color:#1a0f09; }
+
+/* journal */
+.logrow{
+  display:grid; grid-template-columns: 96px minmax(0,1fr) auto; gap: 13px; align-items:start;
+  padding: 12px 14px;
+  border-bottom: 2px solid var(--line-2);
+}
+.logrow:last-child{ border-bottom:none; }
+.logrow__date{ font-family:"IBM Plex Mono",monospace; font-size: 12px; color: var(--clay-ink); font-variant-numeric: tabular-nums; padding-top:2px; }
+.logrow__txt{ font-size: 13.5px; line-height:1.55; white-space: pre-wrap; overflow-wrap:anywhere; }
+@media (max-width: 560px){
+  .logrow{ grid-template-columns: minmax(0,1fr) auto; }
+  .logrow__date{ grid-column:1/-1; }
+}
+
+/* reference / exams */
+.tablewrap{ overflow-x: auto; border:2px solid var(--line-2); }
+table.t{ border-collapse: collapse; width:100%; font-size: 13px; min-width: 320px; }
+table.t th, table.t td{ padding: 8px 11px; text-align:left; border-bottom: 1px solid var(--line-2); }
+table.t th{
+  font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace; font-weight:500; font-size:12px; text-transform:uppercase; letter-spacing:.05em;
+  color: var(--ink-2); background: var(--paper-2); border-bottom: 2px solid var(--line-2);
+}
+table.t td.num{ font-family:"IBM Plex Mono",monospace; font-variant-numeric: tabular-nums; white-space:nowrap; }
+table.t tr:last-child td{ border-bottom:none; }
+
+.prose{ font-size: 13.5px; line-height:1.62; color: var(--ink-2); max-width: 68ch; }
+.prose b, .prose strong{ color: var(--ink); }
+.rulecard{ display:flex; flex-direction:column; gap: 7px; padding: 13px 14px; border:2px solid var(--line-2); background: var(--surface); }
+.rulecard__t{ font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace; font-weight:600; font-size:13px; text-transform:uppercase; letter-spacing:.04em; color: var(--clay-ink); }
+
+/* ============================================================
+   Modal / dialog
+   ============================================================ */
+dialog.modal{
+  padding: 0; border: 2px solid var(--line); border-radius: var(--r);
+  background: var(--surface); color: var(--ink);
+  box-shadow: var(--sh-lg);
+  width: min(560px, calc(100vw - 28px));
+  max-height: min(86dvh, 760px);
+  overscroll-behavior: contain;
+}
+dialog.modal::backdrop{ background: color-mix(in srgb, #100E0B 62%, transparent); backdrop-filter: blur(2px); }
+.modal__head{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding: 12px 14px; border-bottom: 2px solid var(--line);
+  background: var(--paper-2); position: sticky; top:0; z-index:2;
+}
+.modal__title{ font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace; font-weight:600; font-size: 14px; text-transform:uppercase; letter-spacing:.04em; }
+.modal__body{ padding: 15px 16px; overflow-y: auto; }
+.modal__foot{
+  display:flex; align-items:center; justify-content:flex-end; gap: 8px;
+  padding: 12px 14px; border-top: 2px solid var(--line-2);
+  background: var(--paper-2); position: sticky; bottom:0;
+}
+.modal__foot .spacer{ flex:1 1 auto; }
+
+/* toast */
+.toasts{
+  position: fixed; z-index: 90;
+  left: 50%; transform: translateX(-50%);
+  bottom: max(16px, env(safe-area-inset-bottom));
+  display:flex; flex-direction:column; gap: 8px; align-items:center;
+  pointer-events:none; width: min(440px, calc(100vw - 24px));
+}
+.toast{
+  display:flex; align-items:center; gap: 9px;
+  padding: 9px 12px;
+  border: 2px solid var(--line); background: var(--surface); color: var(--ink);
+  box-shadow: var(--sh);
+  font-size: 13px;
+  animation: toastin .2s cubic-bezier(.2,.8,.2,1);
+  pointer-events: auto;
+  max-width: 100%;
+}
+.toast__ico{ flex:0 0 auto; display:grid; place-items:center; }
+@keyframes toastin{ from{ opacity:0; transform: translateY(8px) } }
+.toast--good .toast__ico{ color: var(--moss); }
+.toast--bad .toast__ico{ color: var(--rust); }
+
+/* XP burst on completion */
+.xpfloat{
+  position: fixed; z-index: 80; pointer-events:none;
+  font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace; font-weight:700; font-size: 16px; color: var(--moss);
+  text-shadow: 1px 1px 0 var(--surface);
+  animation: xpup .9s cubic-bezier(.2,.8,.2,1) forwards;
+}
+@keyframes xpup{
+  0%{ opacity:0; transform: translateY(4px) scale(.8) }
+  20%{ opacity:1; transform: translateY(-6px) scale(1) }
+  100%{ opacity:0; transform: translateY(-38px) scale(1) }
+}
+
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+/* utility */
+.row{ display:flex; align-items:center; gap: 9px; flex-wrap: wrap; }
+.row--tight{ gap: 6px; }
+.col{ display:flex; flex-direction:column; gap: 9px; }
+.grow{ flex: 1 1 auto; min-width: 0; }
+.muted{ color: var(--ink-2); }
+.faint{ color: var(--ink-3); }
+.sr{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+.skip{
+  position:absolute; left:8px; top:-60px; z-index:100;
+  background: var(--clay); color:#1a0f09; padding: 9px 12px; border:2px solid var(--line);
+  font-family:"Handjet","IBM Plex Mono",ui-monospace,monospace; font-weight:500; font-size:12.5px; text-transform:uppercase;
+  transition: top .15s ease-out;
+}
+.skip:focus{ top: 8px; }
+</style>
+<a class="skip" href="#main">До основного вмісту</a>
+
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges" fill="none">
+          <path fill="#1a0f09" d="M2 2h3v2H2zM11 2h3v2h-3zM2 4h2v8H2zM12 4h2v8h-2zM6 5h4v2H6zM7 7h2v4H7zM2 12h3v2H2zM11 12h3v2h-3z"/>
+        </svg>
+      </div>
+      <div class="brand__txt">
+        <div class="brand__name" translate="no">Track&nbsp;Runner</div>
+        <div class="brand__sub" id="brandSub">Особистий планер навчання</div>
+      </div>
+    </div>
+
+    <div class="topbar__spacer"></div>
+
+    <div class="topbar__tools">
+      <output class="savechip" id="saveChip" data-state="idle" aria-live="polite">
+        <span class="savechip__dot" aria-hidden="true"></span>
+        <span id="saveChipText">Готово</span>
+      </output>
+
+      <button class="iconbtn" id="btnTheme" type="button" aria-label="Перемкнути тему">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true">
+          <path d="M7 1h2v2H7zM3 3h2v2H3zM11 3h2v2h-2zM6 5h4v1H6zM5 6h1v4H5zM10 6h1v4h-1zM1 7h2v2H1zM13 7h2v2h-2zM6 10h4v1H6zM3 11h2v2H3zM11 11h2v2h-2zM7 13h2v2H7z"/>
+        </svg>
+      </button>
+
+      <button class="iconbtn" id="btnMenu" type="button" aria-label="Дані та налаштування" aria-haspopup="dialog">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true">
+          <path d="M2 2h12v2H2zM2 7h12v2H2zM2 12h12v2H2z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="body">
+    <nav class="rail" aria-label="Навігація">
+      <div class="rail__group rail__group--tracks">
+        <div class="rail__title">
+          <span>Треки</span>
+          <button class="iconbtn" id="btnAddTrack" type="button" aria-label="Додати трек" style="width:20px;height:20px">
+            <svg viewBox="0 0 16 16" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><path d="M7 2h2v5h5v2H9v5H7V9H2V7h5z"/></svg>
+          </button>
+        </div>
+        <div class="col" id="trackList"></div>
+      </div>
+
+      <div class="rail__group">
+        <div class="rail__title"><span>Розділи</span></div>
+        <div class="col" style="gap:3px" id="navList"></div>
+      </div>
+
+      <div class="rail__group rail__group--stats">
+        <div class="rail__title"><span>Підсумок</span></div>
+        <div class="railstat" id="railStats"></div>
+      </div>
+    </nav>
+
+    <main class="main" id="main" tabindex="-1">
+      <div class="wrap" id="view"></div>
+    </main>
+  </div>
+</div>
+
+<dialog class="modal" id="modal" aria-labelledby="modalTitle">
+  <form method="dialog" id="modalForm">
+    <div class="modal__head">
+      <h2 class="modal__title" id="modalTitle">Форма</h2>
+      <button class="iconbtn" type="button" id="modalClose" aria-label="Закрити">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><path d="M3 4h2v2H3zM5 6h2v2H5zM7 8h2v2H7zM9 6h2v2H9zM11 4h2v2h-2zM9 10h2v2H9zM11 12h2v2h-2zM5 10h2v2H5zM3 12h2v2H3z"/></svg>
+      </button>
+    </div>
+    <div class="modal__body" id="modalBody"></div>
+    <div class="modal__foot" id="modalFoot"></div>
+  </form>
+</dialog>
+
+<input type="file" id="fileInput" accept="application/json,.json" class="sr" tabindex="-1" aria-hidden="true">
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+<script>
+/* ============================================================
+   SEED — AI Engineer Track
+   Compact authoring format; ids are derived deterministically
+   in normalizeTrack() so the seed source stays readable.
+   Task shapes:  "text"  |  ["text", "YYYY-MM-DD"]  (done)
+   ============================================================ */
+const SEED_TRACK = {
+  title: "AI Engineer Track",
+  subtitle: "Не підготовка до іспитів, а навчання. Кожен Step закінчується робочим артефактом.",
+  start: "2026-08-09",
+  hours: 330,
+  budget: "10+ год/тиждень",
+  role: "AI engineer — той, хто робить pre-trained моделі корисними в реальних системах. Не тренує моделі (це ML engineer), не пише абстрактний код (це SWE). Живе праворуч від API-лінії: chains, agents, продукт, деплой.",
+  note: "Наскрізний проєкт. Наявний MCP-агент лишається робочим референсом і навчальним матеріалом. Новий продукт будується з нуля паралельно — щоб пройти весь шлях руками, а не успадкувати готові рішення.",
+
+  steps: [
+    /* ==================== STEP 1 ==================== */
+    {
+      tag: "Step 1",
+      title: "Core",
+      sub: "Python, Git, LLM-фундамент, системне мислення. Без цього все інше — клікання по інтерфейсах.",
+      hours: 110,
+      artifact: "CLI-асистент на Python + LLM API",
+      phases: [
+        {
+          title: "Фаза 0 — Setup",
+          hours: 2,
+          materials: [
+            { g: "Python for AI", t: "Python Tutorial", u: "https://docs.python.org/3/tutorial/" },
+            { g: "Python for AI", t: "Built-in Types", u: "https://docs.python.org/3/library/stdtypes.html" },
+            { g: "Python for AI", t: "List comprehensions (Real Python)", u: "https://realpython.com/list-comprehension-python/" },
+            { g: "Foundations Library", t: "The Rise of the AI Engineer", u: "https://www.latent.space/p/ai-engineer", n: "Swyx — визначення ролі" },
+            { g: "Foundations Library", t: "Attention Is All You Need", u: "https://arxiv.org/abs/1706.03762" },
+            { g: "Foundations Library", t: "The Illustrated Transformer", u: "https://jalammar.github.io/illustrated-transformer/" },
+            { g: "Foundations Library", t: "Karpathy — Let's build GPT", u: "https://www.youtube.com/watch?v=kCc8FmEb1nY" },
+            { g: "Foundations Library", t: "RAG paper", u: "https://arxiv.org/abs/2005.11401" },
+            { g: "Foundations Library", t: "Building effective agents", u: "https://www.anthropic.com/engineering/building-effective-agents" },
+            { g: "Foundations Library", t: "Model Context Protocol", u: "https://modelcontextprotocol.io/" },
+            { g: "Foundations Library", t: "LLM patterns", u: "https://eugeneyan.com/writing/llm-patterns/" },
+            { g: "Foundations Library", t: "Hamel Husain — Evals", u: "https://hamel.dev/blog/posts/evals/" }
+          ],
+          sections: [
+            {
+              title: "Чекліст",
+              tasks: [
+                ["Створити блокнот NotebookLM `Python for AI — fundamentals`", "2026-08-16"],
+                ["Залити 3 стартові sources", "2026-08-16"],
+                ["Створити блокнот `Foundations Library`", "2026-08-16"],
+                ["Залити 9 ключових sources", "2026-08-16"],
+                ["Створити папку `notes/python/` у репо", "2026-08-16"],
+                ["Зареєструватись на Microsoft Learn", "2026-08-16"],
+                ["Прогнати AI Skills Navigator під роль «AI Engineer», зберегти результат", "2026-08-16"],
+                "Створити акаунт Databricks Community Edition (знадобиться на Фазі 11)"
+              ]
+            }
+          ]
+        },
+
+        {
+          title: "Фаза 1 — Python for AI",
+          hours: 90,
+          goal: "Писати production-код на Python, а не скрипти. Читати чужі бібліотеки, розуміти чому вони влаштовані саме так, писати свій код так, щоб його можна було тестувати і підтримувати.",
+          note: "Порядок блоків не довільний — кожен спирається на попередній. Декоратори неможливі без функцій як об'єктів, pydantic без класів, тести без модулів.",
+          materials: [
+            { t: "Python Tutorial", u: "https://docs.python.org/3/tutorial/", n: "База для блоків 1–5" },
+            { t: "Codewars", u: "https://www.codewars.com/", n: "8 kyu, 15 хв щодня" },
+            { t: "Practice Python", u: "https://www.practicepython.org/" },
+            { t: "Exercism", u: "https://exercism.org/tracks/python" },
+            { t: "Python Tutor", u: "https://pythontutor.com/", n: "Візуалізація виконання" }
+          ],
+          sections: [
+            {
+              title: "Блок 1 — Основи мови",
+              hours: 12,
+              note: "Матеріал: Python Tutorial розділи 3–5",
+              tasks: [
+                ["Зареєструватись на Codewars, розв'язати перші 3 kata (8 kyu)", "2026-08-19"],
+                ["Розділ 3 — числа, рядки, f-strings, індексація і зрізи", "2026-08-16"],
+                ["Розділ 4.1–4.5 — if/elif/else, for, range, break, continue, else у циклах", "2026-08-17"],
+                ["Розділ 4.6 — `pass` (швидко)", "2026-08-17"],
+                ["Розділ 4.7 — `match` (оглядово, знати що існує)", "2026-08-18"],
+                ["Розділ 4.8 — функції: def, return, область видимості (scope), LEGB", "2026-08-20"],
+                "Розділ 4.9 — **найважливіше в розділі**: аргументи за замовчуванням, keyword-аргументи, спеціальні параметри (`/`, `*`), `*args`, `**kwargs`, розпакування, lambda, docstrings, анотації",
+                "Пастка мутабельного аргументу за замовчуванням (4.9.1) — розібрати в Python Tutor",
+                "Розділ 4.10 — стиль кодування (PEP 8), 5 хвилин",
+                "`sorted(key=...)`, `min`/`max` з ключем",
+                "Розділ 5.1 — списки: методи, `append` vs `extend`, копіювання",
+                "Розділ 5.1.3 — list comprehensions, вкладені comprehensions",
+                "Розділ 5.3 — кортежі, розпакування, іменовані повернення",
+                "Розділ 5.4 — множини: коли швидше за список",
+                "Розділ 5.5 — словники: методи, `get`, `setdefault`, dict comprehensions",
+                "Мутабельність і посилання — чому `a = b` не копія (Python Tutor!)",
+                "Practice Python — вправи 1–10"
+              ],
+              checkpoint: "Функція приймає список словників (відповідь API), фільтрує за умовою, сортує за ключем, повертає новий список. Циклом і comprehension. Пояснити, чому зміна результату не змінює вхідні дані — або чому змінює."
+            },
+            {
+              title: "Блок 2 — Організація коду і оточення",
+              hours: 8,
+              note: "Без цього кожен проєкт залишається одним файлом. Матеріал: Python Tutorial розділ 6 · packaging.python.org",
+              tasks: [
+                "Модулі — імпорт, `from ... import`, аліаси",
+                "`if __name__ == \"__main__\"` — що це насправді робить",
+                "Пакети, `__init__.py`, відносні vs абсолютні імпорти",
+                "Циклічні імпорти — чому виникають і як розривати",
+                "Віртуальні оточення: `venv`, активація, ізоляція",
+                "`pip`, `requirements.txt`, закріплення версій",
+                "`pyproject.toml` — сучасний стандарт, чим кращий",
+                "`uv` як швидша альтернатива pip (оглядово)",
+                "Структура проєкту: src-layout, де тримати тести і конфіги",
+                "`.env` і змінні оточення, `python-dotenv`",
+                "`.gitignore` для Python — що ніколи не комітити"
+              ],
+              checkpoint: "Зібрати з нуля проєкт-скелет: venv, pyproject.toml, пакет з кількох модулів, точка входу, конфіг через .env. Запускається на чистій машині за README."
+            },
+            {
+              title: "Блок 3 — Дані, файли і помилки",
+              hours: 10,
+              note: "Матеріал: Python Tutorial розділи 7–8 · pathlib docs · json docs",
+              tasks: [
+                "Читання і запис файлів, режими, кодування (завжди UTF-8)",
+                "Context managers — `with`, чому без нього течуть ресурси",
+                "`pathlib.Path` замість `os.path` — сучасний спосіб",
+                "JSON: `load`/`loads`/`dump`/`dumps`, типові пастки серіалізації",
+                "CSV — читання, запис, `DictReader`",
+                "Винятки: try/except/else/finally — роль кожної гілки",
+                "Ієрархія винятків, чому `except Exception` майже завжди помилка",
+                "`raise`, `raise ... from ...`, ланцюжок винятків",
+                "Власні класи винятків — навіщо в бібліотечному коді",
+                "Логування замість print: `logging`, рівні, формат, хендлери",
+                "Структуроване логування (JSON-логи) — навіщо в production"
+              ],
+              checkpoint: "Скрипт читає теку з JSON-файлами, обробляє, пише результат. Битий файл не валить процес — логується і пропускається. У логах видно, що саме сталось і де."
+            },
+            {
+              title: "Блок 4 — ООП",
+              hours: 12,
+              note: "Найважливіший блок для читання чужого коду. `pydantic.BaseModel`, FastAPI, будь-який SDK — усе це класи. Матеріал: Python Tutorial розділ 9 · Real Python по ООП",
+              tasks: [
+                "Клас vs екземпляр, `__init__`, `self` — що це насправді",
+                "Атрибути екземпляра vs класу — типова плутанина",
+                "Методи, область видимості всередині класу",
+                "Успадкування, `super()`, перевизначення методів",
+                "MRO — порядок пошуку методів (оглядово, але знати що існує)",
+                "Композиція vs успадкування — коли що",
+                "Dunder-методи: `__str__`, `__repr__`, `__eq__`, `__len__`, `__contains__`",
+                "`@property`, сеттери — контрольований доступ до атрибутів",
+                "`@classmethod`, `@staticmethod` — різниця і коли який",
+                "Приватність за домовленістю: `_name`, `__name`",
+                "`__slots__` — оглядово, коли має значення",
+                "Абстрактні класи (`abc`) і `Protocol` — контракти",
+                "Власні context managers через `__enter__`/`__exit__`"
+              ],
+              checkpoint: "Написати клас-клієнт до будь-якого HTTP API: `__init__` з конфігом, методи-операції, власний виняток, `__repr__`, робота через `with`. Потім успадкувати від нього спеціалізовану версію."
+            },
+            {
+              title: "Блок 5 — Ітератори, генератори, декоратори",
+              hours: 10,
+              note: "Без цього FastAPI виглядає магією, а streaming неможливий. Матеріал: Python Tutorial розділи 9.8–9.11 · functools docs",
+              tasks: [
+                "Ітерабельне vs ітератор — різниця",
+                "`__iter__`, `__next__`, `StopIteration`",
+                "Генератори і `yield` — ліниві обчислення",
+                "Generator expressions vs list comprehensions — пам'ять",
+                "`yield from`, делегування",
+                "Навіщо генератори для streaming відповідей LLM",
+                "Функції як об'єкти першого класу",
+                "Замикання (closures) — що захоплюється і коли",
+                "Декоратори: як влаштовані, `@syntax` як цукор",
+                "`functools.wraps` — чому без нього ламається інтроспекція",
+                "Декоратори з аргументами — три рівні вкладеності",
+                "Практичні декоратори: таймінг, retry, кешування, логування",
+                "`functools.lru_cache`, `partial`, `reduce`"
+              ],
+              checkpoint: "Написати декоратор `@retry(attempts=3, delay=1)`, який повторює виклик при винятку з exponential backoff і логує спроби. Пояснити, чому потрібні саме три рівні вкладених функцій."
+            },
+            {
+              title: "Блок 6 — Типізація і моделі даних",
+              hours: 10,
+              note: "Матеріал: typing docs · dataclasses docs · pydantic docs",
+              tasks: [
+                "Навіщо анотації, якщо Python їх не перевіряє",
+                "Базові анотації: `str`, `int`, `list[str]`, `dict[str, int]`",
+                "`Optional`, `Union` / `|`, `Any` — і чому `Any` це поразка",
+                "`Literal`, `Enum` — обмежені набори значень",
+                "`TypedDict` — типізований словник",
+                "Generics, `TypeVar` — оглядово",
+                "`Protocol` — структурна типізація («качина» з перевіркою)",
+                "`dataclasses` — коли достатньо їх",
+                "Pydantic: `BaseModel`, автовалідація, приведення типів",
+                "Вкладені моделі, списки моделей",
+                "Валідатори: `field_validator`, `model_validator`",
+                "`model_validate`, `model_dump`, `model_dump_json`",
+                "`Field` — обмеження, аліаси, описи",
+                "`pydantic-settings` — конфіг застосунку з .env з валідацією",
+                "Обробка `ValidationError`"
+              ],
+              checkpoint: "Описати pydantic-моделями повну відповідь LLM API з вкладеними об'єктами і опціональними полями. Розпарсити реальний JSON, обробити невалідний, дати зрозуміле повідомлення про помилку."
+            },
+            {
+              title: "Блок 7 — Асинхронність і мережа",
+              hours: 10,
+              note: "Матеріал: asyncio docs · httpx docs · tenacity docs",
+              tasks: [
+                "Синхронна vs асинхронна модель — де реальна вигода",
+                "I/O-bound vs CPU-bound — чому async не прискорює обчислення",
+                "Event loop — що це, `asyncio.run`",
+                "`async def`, `await` — і чому не можна await у звичайній функції",
+                "Корутини vs задачі, `create_task`",
+                "`asyncio.gather` — паралельні запити",
+                "`asyncio.TaskGroup` — сучасна заміна gather",
+                "Таймаути, скасування задач",
+                "Async context managers, `async with`",
+                "Async-ітератори, `async for` — основа streaming",
+                "`requests` (sync) vs `httpx` (обидва режими)",
+                "HTTP на практиці: заголовки, статуси, таймаути, сесії",
+                "Retry з exponential backoff, `tenacity`",
+                "Rate limiting — семафор, обмеження конкурентності",
+                "Типові помилки: блокуючий виклик всередині async"
+              ],
+              checkpoint: "Зробити 20 паралельних HTTP-запитів з обмеженням у 5 одночасних, таймаутом і retry. Порівняти час із синхронною версією."
+            },
+            {
+              title: "Блок 8 — Тестування і якість коду",
+              hours: 12,
+              note: "Без цього Фаза 10 (CI/CD) не має що запускати. Матеріал: pytest docs · ruff docs · mypy docs",
+              tasks: [
+                "Навіщо тести, коли «і так видно що працює»",
+                "pytest: тестові функції, `assert`, запуск, структура тек",
+                "Фікстури — підготовка і прибирання",
+                "`@pytest.mark.parametrize` — таблиця випадків",
+                "Тестування винятків: `pytest.raises`",
+                "Мокування: `unittest.mock`, `monkeypatch`",
+                "Як тестувати код, що ходить у зовнішнє API",
+                "`pytest-asyncio` — тести async-коду",
+                "Покриття (`pytest-cov`) — і чому 100% не мета",
+                "ruff — лінтер і форматер в одному",
+                "mypy або pyright — статична перевірка типів",
+                "pre-commit hooks — автоперевірка перед комітом",
+                "Дебагінг: `breakpoint()`, дебагер VS Code, точки зупину",
+                "Профілювання — `time`, `cProfile` (оглядово)"
+              ],
+              checkpoint: "Покрити тестами код з блоку 4 (клас-клієнт API). Мок зовнішніх викликів, параметризовані випадки, тест на помилку. ruff і mypy проходять без зауважень."
+            },
+            {
+              title: "Блок 9 — Стандартна бібліотека",
+              hours: 6,
+              note: "Те, що використовується щодня і що марно писати самому.",
+              tasks: [
+                "`collections`: `Counter`, `defaultdict`, `deque`, `namedtuple`",
+                "`itertools`: `chain`, `groupby`, `islice`, `product`",
+                "`datetime`: наївні vs aware, таймзони, `timedelta`, ISO-формат",
+                "`re` — базові патерни, групи, `findall`, `sub`",
+                "`os` і `sys` — оточення, аргументи, коди виходу",
+                "`subprocess` — запуск зовнішніх команд",
+                "`argparse` або `typer` — CLI-інтерфейс",
+                "`uuid`, `hashlib`, `secrets` — ідентифікатори і хеші",
+                "`time` vs `datetime` vs `perf_counter`"
+              ],
+              checkpoint: "CLI-утиліта на typer/argparse з аргументами, підкомандами і `--help`. Робить щось корисне з файлами."
+            },
+            {
+              title: "Блок 10 — Підсумкова практика",
+              hours: 8,
+              tasks: [
+                "Розібрати власний MCP-агент рядок за рядком, виписати незрозуміле",
+                "Закрити виписане через docs і блокнот NotebookLM",
+                "Відрефакторити один модуль агента: типи, тести, логування",
+                "Переписати синхронний фрагмент на async",
+                "Прогнати ruff і mypy по всьому проєкту, виправити",
+                "Підсумковий квіз по всій Фазі 1 через NotebookLM"
+              ]
+            }
+          ],
+          checkpoint: "Пояснити своїми словами кожен рядок власного MCP-агента. Місця «працює, але не знаю чому» — це список на добивання, а не привід йти далі."
+        },
+
+        {
+          title: "Фаза 2 — Git і GitHub",
+          hours: 4,
+          goal: "Володіти Git руками, без агента. Це робочий інструмент інженера — без нього не працює ні code review, ні CI/CD, ні співпраця.",
+          materials: [
+            { t: "Learn Git Branching", u: "https://learngitbranching.js.org/" },
+            { t: "Pro Git (безкоштовна книга)", u: "https://git-scm.com/book/uk/v2" },
+            { t: "GitHub docs", u: "https://docs.github.com/" }
+          ],
+          sections: [
+            {
+              title: "Чекліст",
+              tasks: [
+                "`init`, `add`, `commit`, `status`, `log` — базовий цикл руками в терміналі",
+                "`branch`, `checkout`/`switch`, `merge` — робота з гілками",
+                "`push`, `pull`, `fetch`, remote — синхронізація з GitHub",
+                "Розв'язання merge-конфліктів (створити конфлікт навмисне і розібрати)",
+                "`.gitignore`, що ніколи не комітити (секрети, .venv, великі файли)",
+                "Pull request — створити, описати, змерджити",
+                "learngitbranching.js.org — пройти основні рівні",
+                "Осмислені commit-меседжі (conventional commits як орієнтир)"
+              ]
+            }
+          ],
+          checkpoint: "Провести повний цикл руками: гілка → зміни → commit → push → PR → merge. Без Claude Code, без GUI."
+        },
+
+        {
+          title: "Фаза 3 — LLM fundamentals і робота з API",
+          hours: 15,
+          goal: "Розуміти, що саме відбувається при виклику моделі. Без цього робота з Foundry і Databricks перетворюється на клікання по кнопках.",
+          materials: [
+            { t: "Anthropic docs", u: "https://docs.anthropic.com/" },
+            { t: "OpenAI API docs", u: "https://platform.openai.com/docs/" },
+            { t: "Prompt Engineering Guide (DAIR.AI)", u: "https://www.promptingguide.ai/" },
+            { t: "Karpathy — Let's build GPT", u: "https://www.youtube.com/watch?v=kCc8FmEb1nY", n: "Вже у Foundations Library" }
+          ],
+          sections: [
+            {
+              title: "Блок 1 — Як працює LLM",
+              hours: 6,
+              tasks: [
+                "Токенізація — що таке токен, чому впливає на вартість і ліміти",
+                "Context window — що це, як заповнюється, що робити при переповненні",
+                "Temperature, top_p, top_k — що реально змінюють, коли який",
+                "Max tokens, stop sequences",
+                "Чому модель недетермінована і що з цим робити",
+                "Галюцинації — механізм виникнення, а не просто «буває»",
+                "Karpathy «Let's build GPT» — подивитись повністю"
+              ]
+            },
+            {
+              title: "Блок 2 — Робота з API руками",
+              hours: 5,
+              tasks: [
+                "Автентифікація: API keys, заголовки, змінні оточення (ніколи не в коді)",
+                "Структура запиту і відповіді, роль system/user/assistant",
+                "Парсинг відповіді, обробка полів usage і вартості",
+                "HTTP-помилки, rate limits, retry з exponential backoff",
+                "Streaming — коли і навіщо",
+                "Structured output — JSON mode, tool use / function calling",
+                "Multi-turn: як зберігати історію, бо модель не пам'ятає"
+              ]
+            },
+            {
+              title: "Блок 3 — Prompt engineering як інженерія",
+              hours: 4,
+              tasks: [
+                "System prompt vs user prompt — розподіл відповідальності",
+                "Few-shot приклади, коли працюють краще за інструкції",
+                "Chain-of-thought, коли допомагає і коли шкодить",
+                "Стійкість промпту: як не ламатись на неочікуваному вводі",
+                "Версіонування промптів — тримати в коді, не в голові"
+              ]
+            }
+          ],
+          checkpoint: "Пояснити, чому один і той самий промпт дав різні відповіді, і що конкретно покрутити, щоб зробити результат стабільнішим."
+        },
+
+        {
+          kind: "project",
+          title: "Проєкт Step 1 — CLI research assistant",
+          goal: "Новий проєкт з нуля. Наявний MCP-агент не рахується — ціль пройти шлях руками.",
+          sections: [
+            {
+              title: "Вимоги",
+              tasks: [
+                "CLI-застосунок на Python: питання → структурована відповідь",
+                "Виклик LLM API напряму (без фреймворків)",
+                "Підтримка follow-up питань зі збереженням історії",
+                "Structured output — відповідь у заданому форматі",
+                "Обробка помилок API, retry",
+                "Конфігурація через змінні оточення",
+                "Все в Git з осмисленою історією комітів",
+                "README з описом і прикладами запуску"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    /* ==================== STEP 2 ==================== */
+    {
+      tag: "Step 2",
+      title: "Backend і RAG",
+      sub: "Перетворення скрипта на сервіс. Тут закінчується «вмію писати код» і починається «вмію будувати системи».",
+      hours: 50,
+      artifact: "Docs Q&A як FastAPI-сервіс у Docker",
+      phases: [
+        {
+          title: "Фаза 4 — Backend для AI",
+          hours: 25,
+          goal: "Вміти зібрати справжній сервіс, а не скрипт. Це те, що відрізняє «клікав у порталі» від «можу задеплоїти систему».",
+          materials: [
+            { t: "FastAPI docs", u: "https://fastapi.tiangolo.com/" },
+            { t: "Docker docs", u: "https://docs.docker.com/" },
+            { t: "PostgreSQL tutorial", u: "https://www.postgresql.org/docs/current/tutorial.html" }
+          ],
+          sections: [
+            {
+              title: "Чекліст",
+              tasks: [
+                "FastAPI — перший endpoint, routing, path/query параметри",
+                "Pydantic-моделі як request/response схеми",
+                "Async endpoints — коли і навіщо",
+                "Обробка помилок, HTTP-статуси, middleware",
+                "Автодокументація (OpenAPI/Swagger) — що дає безкоштовно",
+                "Docker — образи, контейнери, `Dockerfile`, `docker compose`",
+                "Змінні оточення, секрети, конфігурація",
+                "PostgreSQL — основи SQL, таблиці, зв'язки, індекси",
+                "Підключення БД до FastAPI, міграції",
+                "Фонові задачі і черги — концептуально"
+              ]
+            },
+            {
+              title: "Azure-специфіка (Microsoft Learn)",
+              hours: 4,
+              tasks: [
+                "Configure a container app in Azure Container Apps (1h04)",
+                "Deploy containers to Azure App Service (1h14)",
+                "Guided project — Deploy and manage a container app using Azure Container Apps (1h51)"
+              ]
+            }
+          ]
+        },
+
+        {
+          title: "Фаза 5 — RAG fundamentals",
+          hours: 10,
+          goal: "Розуміти RAG вендор-нейтрально, до того як його вивчати в обгортці Azure AI Search чи Databricks Vector Search.",
+          materials: [
+            { t: "RAG paper", u: "https://arxiv.org/abs/2005.11401", n: "Foundations Library" },
+            { t: "LlamaIndex docs", u: "https://docs.llamaindex.ai/" },
+            { t: "LangChain docs", u: "https://python.langchain.com/docs/" },
+            { t: "Ragas docs", u: "https://docs.ragas.io/" }
+          ],
+          sections: [
+            {
+              title: "Чекліст",
+              tasks: [
+                "Навіщо RAG взагалі — яку проблему вирішує, коли не потрібен",
+                "Embeddings — що це геометрично, чому схожі тексти близькі",
+                "Вибір embedding-моделі, розмірність, вартість",
+                "Chunking — стратегії (fixed, recursive, semantic), розмір, overlap",
+                "Векторні сховища — як влаштований індекс, ANN-пошук",
+                "Cosine similarity vs dot product vs euclidean",
+                "Hybrid search — BM25 + dense, чому разом краще",
+                "Reranking — навіщо другий етап",
+                "Query rewriting, HyDE — коли допомагає",
+                "Метрики retrieval: precision@k, recall@k, MRR",
+                "Зібрати найпростіший RAG руками, без фреймворку"
+              ]
+            }
+          ],
+          checkpoint: "Пояснити, чому конкретна відповідь вийшла поганою — проблема в retrieval чи в генерації. І що саме крутити в кожному випадку."
+        },
+
+        {
+          title: "Фаза 6 — Основи Azure AI",
+          hours: 15,
+          goal: "Розуміти ландшафт Azure AI і Microsoft Foundry — що є, для чого, як складається докупи.",
+          note: "Акцент: Foundry — центральна тема. Класичні AI-workloads (vision, speech, translation) — оглядово, знати що існують.",
+          materials: [
+            { t: "AI Overview (3 модулі)", u: "https://learn.microsoft.com/training/paths/get-started-with-artificial-intelligence-on-azure/" },
+            { t: "Generative AI", u: "https://learn.microsoft.com/training/paths/introduction-generative-ai/" },
+            { t: "Foundry Tools", u: "https://learn.microsoft.com/training/paths/get-started-azure-ai/" },
+            { t: "Lab simulations", u: "https://aka.ms/mslearn-ai-sims" }
+          ],
+          sections: [
+            {
+              title: "Чекліст",
+              tasks: [
+                "Створити блокнот `Azure AI — основи`, залити матеріали вище",
+                "Пройти path «AI Overview» (3 модулі)",
+                "Пройти path «Generative AI»",
+                "Пройти path «Foundry Tools»",
+                "Get started with AI agent development on Azure (49m)",
+                "Get started with generative AI and agents in Azure (58m)",
+                "Introduction to Azure OpenAI managed identity authentication with Python (29m)",
+                "Extract data with Azure Document Intelligence (1h11) — витяг таблиць і полів з PDF",
+                "Пройти lab simulations",
+                "Практика: зібрати найпростіший сценарій у Foundry власноруч"
+              ]
+            }
+          ]
+        },
+
+        {
+          kind: "project",
+          title: "Проєкт Step 2 — Docs Q&A backend",
+          goal: "Розвиток CLI зі Step 1 у справжній сервіс.",
+          sections: [
+            {
+              title: "Вимоги",
+              tasks: [
+                "FastAPI-сервіс: завантаження PDF і markdown",
+                "Витяг тексту (Document Intelligence або локально)",
+                "Chunking + embeddings",
+                "Зберігання у векторному сховищі",
+                "Endpoint для запитів з retrieval",
+                "PostgreSQL для метаданих",
+                "Все запаковане в Docker, запуск через `docker compose`",
+                "Автодокументація API працює"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    /* ==================== STEP 3 ==================== */
+    {
+      tag: "Step 3",
+      title: "Agents, Eval і Safety",
+      sub: "Найбільший Step. Тут з'являється те, що відрізняє реального AI-інженера від того, хто зібрав демо: агентність і вимірювана якість.",
+      hours: 90,
+      artifact: "Той самий сервіс — production-ready",
+      phases: [
+        {
+          title: "Фаза 7 — Azure AI apps and agents",
+          hours: 65,
+          goal: "Вміти будувати агентів і generative-застосунки на Azure.",
+          note: "Відкладено на Фазу 9 — альтернативні векторні сховища (pgvector, Azure Managed Redis, ~3 год).",
+          materials: [
+            { t: "Develop AI agents on Azure — ядро, 7 модулів", u: "https://learn.microsoft.com/training/paths/develop-ai-agents-on-azure/" },
+            { t: "Develop AI solutions with Azure OpenAI", u: "https://learn.microsoft.com/training/paths/develop-ai-solutions-azure-openai/" },
+            { t: "AI Agents for Beginners — 10 уроків", u: "https://github.com/microsoft/ai-agents-for-beginners" },
+            { t: "Generative AI for Beginners — 18 уроків", u: "https://github.com/microsoft/generative-ai-for-beginners" },
+            { t: "Azure AI Foundry product docs", u: "https://learn.microsoft.com/azure/ai-foundry/" }
+          ],
+          sections: [
+            {
+              title: "Чекліст",
+              tasks: [
+                "Створити блокнот `Azure AI agents`",
+                "Створити Azure-акаунт (free tier / студентський)",
+                "Path «Develop AI agents on Azure», модуль 1 — AI agent fundamentals",
+                "Модуль 2 — Foundry Agent Service",
+                "Модуль 3 — custom tools",
+                "Модуль 4 — Semantic Kernel",
+                "Модуль 5 — multi-agent orchestration (Semantic Kernel)",
+                "Модуль 6 — connected agents (Foundry)",
+                "Модуль 7 — **MCP Tools integration** (перетин з твоїм курсовим)",
+                "Path «Develop Generative AI solutions with Azure OpenAI»",
+                "AI Agents for Beginners — пройти паралельно",
+                "Оглядово: computer vision, text analysis, information extraction"
+              ]
+            },
+            {
+              title: "Foundry hands-on (Microsoft Learn)",
+              hours: 4,
+              tasks: [
+                "Develop your first agent with Microsoft Foundry (1h14)",
+                "Develop AI agents with Microsoft Foundry and Visual Studio Code (1h35)",
+                "Implement advanced multi-agent orchestration patterns in Microsoft Foundry (48m)",
+                "Choose a custom AI agent development path (30m)"
+              ]
+            },
+            {
+              title: "RAG на Azure",
+              hours: 1,
+              tasks: [
+                "Implement advanced RAG pipelines with Azure AI Search and Microsoft Foundry (41m)"
+              ]
+            }
+          ]
+        },
+
+        {
+          title: "Фаза 8 — Production practices",
+          hours: 25,
+          goal: "Вміти виміряти якість AI-системи числами. AI-системи галюцинують і поводяться недетерміновано — потрібні метрики, а не відчуття.",
+          note: "Модулі з назвою «Azure AI Foundry» проти «Microsoft Foundry» — це той самий продукт після ребрендингу. Два guardrails-модулі майже напевно дублюють один одного; пройти один, другий переглянути.",
+          materials: [
+            { t: "Langfuse docs", u: "https://langfuse.com/docs" },
+            { t: "Hamel Husain — Evals", u: "https://hamel.dev/blog/posts/evals/" },
+            { t: "OWASP Top 10 for LLM", u: "https://owasp.org/www-project-top-10-for-large-language-model-applications/" },
+            { t: "Simon Willison — prompt injection", u: "https://simonwillison.net/tags/prompt-injection/" }
+          ],
+          sections: [
+            {
+              title: "Чекліст",
+              tasks: [
+                "Observability і tracing — Langfuse або MLflow: логування входів, виходів, latency, вартості",
+                "Побудувати eval-набір: ~50 реальних питань з очікуваними відповідями",
+                "LLM-as-judge — автоматичне оцінювання відповідей",
+                "Метрики: точність retrieval, релевантність, галюцинації, вартість на запит",
+                "Guardrails — prompt injection defenses",
+                "PII detection і redaction",
+                "Output validation — відповіді у заданому форматі",
+                "Sentry або аналог — відлов runtime-помилок"
+              ]
+            },
+            {
+              title: "Azure-специфіка (Microsoft Learn)",
+              hours: 5,
+              tasks: [
+                "Evaluate generative AI performance in Microsoft Foundry portal (38m)",
+                "Evaluating generative AI applications (38m)",
+                "Automate AI evaluations with Microsoft Foundry and GitHub Actions (15m)",
+                "Implement generative AI guardrails with Azure AI Content Safety (38m)",
+                "Implement a responsible generative AI solution in Microsoft Foundry (45m)",
+                "Measure and mitigate risks for a generative AI app in Foundry (1h15)"
+              ]
+            }
+          ]
+        },
+
+        {
+          kind: "project",
+          title: "Проєкт Step 3 — той самий сервіс, production-ready",
+          sections: [
+            {
+              title: "Вимоги",
+              tasks: [
+                "Агентний шар: інструменти, багатокроковий reasoning",
+                "Трасування кожного LLM-виклику (входи, виходи, latency, вартість)",
+                "Eval-набір з ~50 питань",
+                "LLM-as-judge скоринг, регресії видно до релізу",
+                "Prompt injection фільтри",
+                "PII redaction",
+                "Sentry на runtime-помилки",
+                "Числовий звіт: точність, вартість запиту, latency"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    /* ==================== STEP 4 ==================== */
+    {
+      tag: "Step 4",
+      title: "Deploy і Ship",
+      sub: "Довести до стану, коли чужа людина може відкрити і користуватись. Найкоротший Step за годинами, але саме він перетворює навчальний проєкт на щось, на що можна дати посилання.",
+      hours: 25,
+      artifact: "Задеплоєний продукт з публічним репо",
+      phases: [
+        {
+          title: "Фаза 9 — Архітектура і governance",
+          hours: 13,
+          goal: "Архітектурні патерни без досвіду збірки перетворюються на терміни без змісту. Тому саме тут, а не раніше.",
+          sections: [
+            {
+              title: "Чекліст",
+              tasks: [
+                "Architect production-grade multi-agent AI solutions in Azure (3h21)",
+                "Deploy and govern enterprise agentic AI solutions on Azure (3h14)",
+                "Operationalize AI responsibly with Azure AI Foundry (2h33)",
+                "Govern AI ready workloads with Microsoft Foundry (1h27)",
+                "Implement vector search with Azure Database for PostgreSQL (1h34)",
+                "Implement vector storage in Azure Managed Redis (1h20)"
+              ]
+            },
+            {
+              title: "Практика фази",
+              tasks: [
+                "Перемалювати архітектуру власного сервісу з урахуванням вивченого",
+                "Записати, що б зробив інакше, якби починав зараз"
+              ]
+            }
+          ]
+        },
+
+        {
+          title: "Фаза 10 — CI/CD, деплой і портфоліо",
+          hours: 12,
+          goal: "Показати, що можеш самостійно збудувати, задеплоїти і підтримувати production AI-застосунок.",
+          sections: [
+            {
+              title: "Чекліст",
+              tasks: [
+                "GitHub Actions — тести, лінтери, автодеплой при merge",
+                "Деплой на Azure Container Apps з HTTPS і змінними оточення",
+                "Health check endpoints",
+                "Алерти при падінні",
+                "Дашборд базових метрик",
+                "Контроль витрат — ліміти, алерти на перевитрату",
+                "Простий web UI (не CLI) — щоб можна було показати",
+                "Автентифікація користувачів",
+                "Ліміти на використання (free tier + платний)",
+                "Публічний GitHub-репозиторій: README, архітектурна схема, демо",
+                "Landing page з документацією"
+              ]
+            },
+            {
+              title: "Публічність (кар'єрне зростання)",
+              tasks: [
+                "Довести до shipped-стану 3 проєкти, не один",
+                "Технічний розбір одного з них — блог-пост або README-стаття",
+                "Розглянути публікацію власного MCP-сервера в екосистемі",
+                "Оглядово: AWS-еквіваленти (Bedrock ≈ Foundry, SageMaker ≈ Azure ML) — ~10 год, щоб не бути «тільки Azure» на співбесіді"
+              ]
+            }
+          ]
+        },
+
+        {
+          kind: "project",
+          title: "Проєкт Step 4 — shipped product",
+          goal: "Фінальний артефакт: працюючий продукт, на який можна дати посилання.",
+          sections: [
+            {
+              title: "Вимоги",
+              tasks: [
+                "Задеплоєний, доступний за URL",
+                "Web UI, реєстрація, ліміти",
+                "CI/CD: коміт → автоматичний деплой",
+                "Моніторинг і алерти працюють",
+                "Публічний репо з документацією",
+                "Опціонально: платна модель"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+    /* ==================== STEP 5 ==================== */
+    {
+      tag: "Step 5",
+      title: "Друга платформа",
+      sub: "Databricks після того, як Azure-версія вже задеплоєна. Сенс саме в порівнянні: ті самі задачі, інші інструменти — так знання перестає бути прив'язаним до одного вендора.",
+      hours: 50,
+      artifact: "Той самий RAG на Databricks + порівняння",
+      phases: [
+        {
+          title: "Фаза 11 — Databricks Generative AI",
+          hours: 50,
+          goal: "Вміти зібрати і задеплоїти production RAG-застосунок на Databricks.",
+          materials: [
+            { t: "Databricks Academy — Generative AI Engineering", u: "https://www.databricks.com/learn/training/generative-ai-engineering-pathway" },
+            { t: "Mosaic AI docs", u: "https://docs.databricks.com/aws/en/generative-ai/" },
+            { t: "Vector Search", u: "https://docs.databricks.com/aws/en/generative-ai/vector-search" },
+            { t: "MLflow", u: "https://mlflow.org/docs/latest/index.html" },
+            { t: "Unity Catalog", u: "https://docs.databricks.com/aws/en/data-governance/unity-catalog/" }
+          ],
+          sections: [
+            {
+              title: "Чекліст",
+              tasks: [
+                "Створити блокнот `Databricks GenAI`",
+                "Databricks Community Edition — освоїти інтерфейс, notebooks",
+                "Vector Search — індекси, embeddings, retrieval",
+                "MLflow — tracing, evaluation, prompt engineering",
+                "Model Serving — endpoints, деплой",
+                "Unity Catalog — governance",
+                "Практика: перенести свій RAG на Databricks, порівняти з Azure-версією"
+              ]
+            }
+          ]
+        },
+
+        {
+          kind: "project",
+          title: "Проєкт Step 5 — порівняльний розбір",
+          sections: [
+            {
+              title: "Вимоги",
+              tasks: [
+                "Той самий RAG-функціонал, реалізований на Databricks",
+                "Письмове порівняння: Azure AI Search vs Vector Search, Foundry vs Mosaic AI, Foundry eval vs MLflow eval",
+                "Що виявилось простішим, що складнішим, де вендорський lock-in",
+                "Висновок: за яких вимог обрав би яку платформу"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+
+  /* ---------- наскрізні правила ---------- */
+  principles: [
+    ["Systems thinking", "Перед кожною фазою — 20 хвилин: намалювати схему того, що збираєшся вивчати. Як шматки з'єднуються, де в цій картині твій код, що на вході і виході. Схема в `notes/<фаза>/00-map.md`. Наприкінці фази — перемалювати і порівняти з першою версією."],
+    ["Проблемне мислення", "15 хв Codewars перед основним матеріалом, кожну сесію. Починати з kata 8 kyu, рухатись вгору. Синтаксис забудеться, вміння розкладати задачу на кроки — ні."],
+    ["Вчимось роблячи", "Туторіали і документація — не навчання, а довідка. Навчання відбувається, коли сидиш над задачею, яку не знаєш як вирішити. Кожен Step закінчується робочим кодом, не конспектом."],
+    ["Все в Git", "Кожна вправа, кожен експеримент — коміт. З Фази 2 і далі це робиться руками, не через агента."],
+    ["Python Tutor", "pythontutor.com — коли не можеш уявити, що відбувається всередині. Візуалізує виконання покроково: стек, змінні, посилання."],
+    ["Правило AI", "AI — репетитор, не виконавець. Пояснення концепцій, розбір твоїх помилок, відповіді на конкретні питання — так. Готові розв'язки замість тебе — ні. Якщо відчуваєш, що аутсорсиш мислення — це і є момент, коли навчання зупиняється."],
+    ["Нотатки", "Щодня `notes/<фаза>/YYYY-MM-DD.md`. Писати не теорію (вона в курсі), а свої зачіпки: що не зрозумів, який приклад допоміг, де здивувався."],
+    ["NotebookLM", "Не читати блокнот — питати його. Раз на тиждень: залити нотатки, згенерувати квіз по своїх складних місцях, пройти. Ліміти free: ~50 sources/блокнот, ~100 запитів/день. Один блокнот на фазу."],
+    ["Перевірка актуальності", "Ринок AI-платформ змінюється швидко. Перед стартом кожної фази — звіряти learning paths, бо посилання і структура можуть змінитись."]
+  ],
+
+  /* ---------- іспити (поза планом) ---------- */
+  examsNote: "Складаються за власним рішенням, коли відчуєш готовність. Не є етапами плану і не мають прив'язки до термінів. Перед записом окремо проходиться: офіційний study guide, practice assessment (ціль 80%+), ознайомлення з exam sandbox.",
+  exams: [
+    {
+      code: "AI-901",
+      title: "Azure AI Fundamentals",
+      facts: ["~$99", "40–60 питань", "45–60 хв", "прохідний 700/1000", "без коду"],
+      readiness: "Готовність приблизно відповідає завершенню Фази 6",
+      domains: [["AI concepts & responsibilities", "40–45%"], ["Implementing AI solutions using Microsoft Foundry", "55–60%"]],
+      links: [
+        { t: "Study guide", u: "https://learn.microsoft.com/credentials/certifications/resources/study-guides/ai-901" },
+        { t: "Exam sandbox", u: "https://aka.ms/examdemo" }
+      ]
+    },
+    {
+      code: "AI-103",
+      title: "Developing AI Apps and Agents on Azure",
+      facts: ["Prerequisite: досвід розробки на Python"],
+      readiness: "Готовність приблизно відповідає завершенню Фази 7",
+      domains: [
+        ["Plan and manage an Azure AI solution", "25–30%"],
+        ["Implement generative AI and agentic solutions", "30–35%"],
+        ["Implement computer vision solutions", "10–15%"],
+        ["Implement text analysis solutions", "10–15%"],
+        ["Implement information extraction solutions", "10–15%"]
+      ],
+      links: [{ t: "Study guide", u: "https://learn.microsoft.com/credentials/certifications/resources/study-guides/ai-103" }]
+    },
+    {
+      code: "Databricks",
+      title: "Generative AI Engineer Associate",
+      facts: ["$200", "45 питань", "90 хв"],
+      readiness: "Готовність приблизно відповідає завершенню Фази 11",
+      domains: [
+        ["Application Development", "30%"],
+        ["Assembling and Deploying Applications", "22%"],
+        ["Design", "14%"],
+        ["Data Preparation", "14%"],
+        ["Evaluation and Monitoring", "12%"],
+        ["Governance", "8%"]
+      ],
+      links: [{ t: "Cert-сторінка Databricks", u: "https://www.databricks.com/learn/certification/generative-ai-engineer-associate" }]
+    }
+  ],
+  examsSkip: "AI-900 і AI-102 — ретайрені 30.06.2026, скласти неможливо. Якщо натрапиш на курс або гайд під ці коди — застарілий матеріал."
+};
+
+/* ---------- starter library: courses + resources ---------- */
+const SEED_COURSES = [
+  { title: "AI Overview", provider: "Microsoft Learn", url: "https://learn.microsoft.com/training/paths/get-started-with-artificial-intelligence-on-azure/", status: "planned", hours: 4, progress: 0, phase: "Фаза 6", tags: ["azure", "fundamentals"] },
+  { title: "Introduction to Generative AI", provider: "Microsoft Learn", url: "https://learn.microsoft.com/training/paths/introduction-generative-ai/", status: "planned", hours: 3, progress: 0, phase: "Фаза 6", tags: ["azure", "genai"] },
+  { title: "Get started with Azure AI (Foundry Tools)", provider: "Microsoft Learn", url: "https://learn.microsoft.com/training/paths/get-started-azure-ai/", status: "planned", hours: 4, progress: 0, phase: "Фаза 6", tags: ["azure", "foundry"] },
+  { title: "Develop AI agents on Azure", provider: "Microsoft Learn", url: "https://learn.microsoft.com/training/paths/develop-ai-agents-on-azure/", status: "planned", hours: 20, progress: 0, phase: "Фаза 7", note: "Ядро Фази 7 — 7 модулів. Модуль 7 (MCP Tools) перетинається з курсовим.", tags: ["azure", "agents", "core"] },
+  { title: "Develop Generative AI solutions with Azure OpenAI", provider: "Microsoft Learn", url: "https://learn.microsoft.com/training/paths/develop-ai-solutions-azure-openai/", status: "planned", hours: 12, progress: 0, phase: "Фаза 7", tags: ["azure", "genai"] },
+  { title: "AI Agents for Beginners", provider: "GitHub / Microsoft", url: "https://github.com/microsoft/ai-agents-for-beginners", status: "planned", hours: 12, progress: 0, phase: "Фаза 7", note: "10 уроків, проходити паралельно з learning path.", tags: ["agents", "free"] },
+  { title: "Generative AI for Beginners", provider: "GitHub / Microsoft", url: "https://github.com/microsoft/generative-ai-for-beginners", status: "planned", hours: 18, progress: 0, phase: "Фаза 7", note: "18 уроків.", tags: ["genai", "free"] },
+  { title: "Generative AI Engineering with Databricks", provider: "Databricks Academy", url: "https://www.databricks.com/learn/training/generative-ai-engineering-pathway", status: "planned", hours: 30, progress: 0, phase: "Фаза 11", tags: ["databricks", "rag"] },
+  { title: "Learn Git Branching", provider: "learngitbranching.js.org", url: "https://learngitbranching.js.org/", status: "planned", hours: 3, progress: 0, phase: "Фаза 2", tags: ["git", "interactive"] },
+  { title: "Let's build GPT: from scratch, in code", provider: "Andrej Karpathy", url: "https://www.youtube.com/watch?v=kCc8FmEb1nY", status: "planned", hours: 2, progress: 0, phase: "Фаза 3", tags: ["llm", "video"] }
+];
+
+const SEED_RESOURCES = [
+  { title: "The Rise of the AI Engineer", url: "https://www.latent.space/p/ai-engineer", type: "article", tags: ["роль", "foundations"], note: "Swyx — визначення ролі. Читати першим." },
+  { title: "Attention Is All You Need", url: "https://arxiv.org/abs/1706.03762", type: "paper", tags: ["transformers", "foundations"] },
+  { title: "The Illustrated Transformer", url: "https://jalammar.github.io/illustrated-transformer/", type: "article", tags: ["transformers", "foundations"] },
+  { title: "RAG paper", url: "https://arxiv.org/abs/2005.11401", type: "paper", tags: ["rag", "foundations"] },
+  { title: "Building effective agents", url: "https://www.anthropic.com/engineering/building-effective-agents", type: "article", tags: ["agents", "foundations"] },
+  { title: "Model Context Protocol", url: "https://modelcontextprotocol.io/", type: "doc", tags: ["mcp", "foundations"] },
+  { title: "LLM patterns", url: "https://eugeneyan.com/writing/llm-patterns/", type: "article", tags: ["patterns", "foundations"] },
+  { title: "Hamel Husain — Your AI Product Needs Evals", url: "https://hamel.dev/blog/posts/evals/", type: "article", tags: ["eval", "foundations"] },
+  { title: "Python Tutorial", url: "https://docs.python.org/3/tutorial/", type: "doc", tags: ["python"] },
+  { title: "Python Tutor — візуалізація виконання", url: "https://pythontutor.com/", type: "tool", tags: ["python", "інструмент"] },
+  { title: "Codewars", url: "https://www.codewars.com/", type: "tool", tags: ["python", "практика"] },
+  { title: "FastAPI docs", url: "https://fastapi.tiangolo.com/", type: "doc", tags: ["backend"] },
+  { title: "Pydantic docs", url: "https://docs.pydantic.dev/", type: "doc", tags: ["python", "типізація"] },
+  { title: "OWASP Top 10 for LLM Applications", url: "https://owasp.org/www-project-top-10-for-large-language-model-applications/", type: "doc", tags: ["safety"] },
+  { title: "Langfuse docs", url: "https://langfuse.com/docs", type: "doc", tags: ["observability", "eval"] }
+];
+
+/* ============================================================
+   Utilities
+   ============================================================ */
+const $ = (sel, root) => (root || document).querySelector(sel);
+const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+
+let _uid = 0;
+const uid = (p) => (p || "x") + "-" + Date.now().toString(36) + "-" + (_uid++).toString(36);
+
+const esc = (s) =>
+  String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+/* minimal inline markup: `code` and **bold** */
+function fmt(s) {
+  return esc(s)
+    .replace(/`([^`]+)`/g, '<code translate="no">$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+}
+
+const todayISO = () => {
+  const d = new Date();
+  return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
+};
+
+const LOCALE = "uk-UA";
+const dfShort = new Intl.DateTimeFormat(LOCALE, { day: "2-digit", month: "2-digit" });
+const dfLong = new Intl.DateTimeFormat(LOCALE, { day: "numeric", month: "long", year: "numeric" });
+const nf = new Intl.NumberFormat(LOCALE);
+
+function parseISO(s) {
+  if (!s) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s).trim());
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return isNaN(d) ? null : d;
+}
+const fmtShort = (iso) => { const d = parseISO(iso); return d ? dfShort.format(d) : ""; };
+const fmtLong = (iso) => { const d = parseISO(iso); return d ? dfLong.format(d) : ""; };
+const daysBetween = (a, b) => Math.round((b - a) / 86400000);
+
+function safeUrl(u) {
+  const s = String(u || "").trim();
+  if (!s) return "";
+  if (/^https?:\/\//i.test(s)) return s;
+  if (/^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(s)) return "https://" + s;
+  return "";
+}
+function hostOf(u) {
+  try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; }
+}
+const pct = (done, total) => (total > 0 ? Math.round((done / total) * 100) : 0);
+
+/* ---------- pixel icon set ---------- */
+const ICONS = {
+  grid: "M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z",
+  list: "M2 3h2v2H2zM6 3h8v2H6zM2 7h2v2H2zM6 7h8v2H6zM2 11h2v2H2zM6 11h8v2H6z",
+  book: "M2 2h5v1H2zM2 3h1v10H2zM3 3h4v1H3zM9 2h5v1H9zM13 3h1v10h-1zM9 3h4v1H9zM3 12h4v1H3zM9 12h4v1H9zM7 4h2v9H7z",
+  link: "M3 6h4v2H3zM2 7h1v2H2zM3 9h4v2H3zM9 6h4v2H9zM13 7h1v2h-1zM9 9h4v2H9zM6 7h4v2H6z",
+  pen: "M11 2h3v3h-3zM9 4h2v2H9zM7 6h2v2H7zM5 8h2v2H5zM3 10h2v2H3zM2 12h2v2H2z",
+  plus: "M7 2h2v5h5v2H9v5H7V9H2V7h5z",
+  trash: "M6 1h4v2H6zM2 3h12v2H2zM3 5h2v9H3zM7 5h2v9H7zM11 5h2v9h-2z",
+  search: "M4 2h6v2H4zM2 4h2v6H2zM10 4h2v6h-2zM4 10h6v2H4zM11 11h2v2h-2zM13 13h2v2h-2z",
+  target: "M6 1h4v2H6zM3 3h3v1H3zM10 3h3v1h-3zM1 6h2v4H1zM13 6h2v4h-2zM3 12h3v1H3zM10 12h3v1h-3zM6 13h4v2H6zM6 6h4v4H6z",
+  flag: "M3 1h2v14H3zM5 2h8v2H5zM11 4h2v2h-2zM5 6h8v2H5z",
+  spark: "M7 1h2v4H7zM1 7h4v2H1zM11 7h4v2h-4zM7 11h2v4H7zM4 4h2v2H4zM10 4h2v2h-2zM4 10h2v2H4zM10 10h2v2h-2z",
+  ext: "M2 2h6v2H4v8h8V8h2v6H2zM9 2h5v5h-2V5l-4 4-1.5-1.5L11 4H9z",
+  down: "M7 1h2v8H7zM4 7h2v2H4zM10 7h2v2h-2zM6 9h4v2H6zM2 12h12v2H2z",
+  up: "M7 5h2v8H7zM4 5h2v2H4zM10 5h2v2h-2zM6 3h4v2H6zM2 1h12v2H2z",
+  cal: "M2 2h12v2H2zM2 4h2v10H2zM12 4h2v10h-2zM4 12h8v2H4zM5 6h2v2H5zM9 6h2v2H9zM5 9h2v2H5zM9 9h2v2H9z",
+  chev: "M5 2h2v2H5zM7 4h2v2H7zM9 6h2v2H9zM7 8h2v2H7zM5 10h2v2H5z",
+  check: "M12 3h2v2h-2zM10 5h2v2h-2zM8 7h2v2H8zM6 9h2v2H6zM4 7h2v2H4zM2 5h2v2H2z",
+  warn: "M7 1h2v2H7zM6 3h4v6H6zM7 11h2v2H7zM5 5h1v6H5zM10 5h1v6h-1z",
+  save: "M2 2h12v12H2zM4 4h6v3H4zM4 9h8v5H4z",
+  note: "M3 1h10v14H3zM5 4h6v1H5zM5 7h6v1H5zM5 10h4v1H5z"
+};
+function ico(name, cls) {
+  const d = ICONS[name] || ICONS.list;
+  return '<svg viewBox="0 0 16 16" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"' +
+    (cls ? ' class="' + cls + '"' : "") + '><path d="' + d + '"/></svg>';
+}
+
+/* ============================================================
+   Track normalization — seed → runtime shape with stable ids
+   ============================================================ */
+function normalizeTrack(seed, tid) {
+  const id = tid || "trk-ai";
+  const steps = (seed.steps || []).map((st, si) => ({
+    id: id + ".s" + si,
+    tag: st.tag || "Step " + (si + 1),
+    title: st.title || "",
+    sub: st.sub || "",
+    hours: st.hours || 0,
+    artifact: st.artifact || "",
+    phases: (st.phases || []).map((ph, pi) => ({
+      id: id + ".s" + si + ".p" + pi,
+      title: ph.title || "",
+      goal: ph.goal || "",
+      note: ph.note || "",
+      hours: ph.hours || 0,
+      kind: ph.kind || "phase",
+      checkpoint: ph.checkpoint || "",
+      materials: (ph.materials || []).map((m, mi) => ({
+        id: id + ".s" + si + ".p" + pi + ".m" + mi,
+        t: m.t || "", u: m.u || "", n: m.n || "", g: m.g || ""
+      })),
+      sections: (ph.sections || []).map((sec, ci) => ({
+        id: id + ".s" + si + ".p" + pi + ".c" + ci,
+        title: sec.title || "",
+        hours: sec.hours || 0,
+        note: sec.note || "",
+        checkpoint: sec.checkpoint || "",
+        tasks: (sec.tasks || []).map((t, ti) => {
+          const text = Array.isArray(t) ? t[0] : t;
+          const at = Array.isArray(t) ? t[1] : null;
+          return {
+            id: id + ".s" + si + ".p" + pi + ".c" + ci + ".t" + ti,
+            text: text, done: !!at, doneAt: at || null, note: ""
+          };
+        })
+      }))
+    }))
+  }));
+
+  return {
+    id: id,
+    title: seed.title, subtitle: seed.subtitle || "", start: seed.start || todayISO(),
+    hours: seed.hours || 0, budget: seed.budget || "", role: seed.role || "", note: seed.note || "",
+    steps: steps,
+    principles: (seed.principles || []).map((p) => ({ t: p[0], b: p[1] })),
+    exams: seed.exams || [], examsNote: seed.examsNote || "", examsSkip: seed.examsSkip || ""
+  };
+}
+
+function blankTrack(title) {
+  return {
+    id: uid("trk"), title: title || "Новий трек", subtitle: "", start: todayISO(),
+    hours: 0, budget: "", role: "", note: "",
+    steps: [{ id: uid("s"), tag: "Step 1", title: "Початок", sub: "", hours: 0, artifact: "", phases: [] }],
+    principles: [], exams: [], examsNote: "", examsSkip: ""
+  };
+}
+
+/* ============================================================
+   State
+   ============================================================ */
+const STORE_KEY = "track-runner.state.v1";
+const UI_KEY = "track-runner.ui.v1";
+const DATA_PATH = "data/state.json";
+
+function freshState() {
+  const track = normalizeTrack(SEED_TRACK, "trk-ai");
+  return {
+    v: 1,
+    updatedAt: new Date().toISOString(),
+    activeTrack: track.id,
+    tracks: [track],
+    courses: SEED_COURSES.map((c) => ({
+      id: uid("c"), title: c.title, provider: c.provider || "", url: c.url || "",
+      status: c.status || "planned", hours: c.hours || 0, progress: c.progress || 0,
+      phase: c.phase || "", note: c.note || "", tags: c.tags || [], added: todayISO()
+    })),
+    resources: SEED_RESOURCES.map((r) => ({
+      id: uid("r"), title: r.title, url: r.url || "", type: r.type || "article",
+      tags: r.tags || [], note: r.note || "", added: todayISO(), starred: false
+    })),
+    log: []
+  };
+}
+
+/* migrate anything loaded from disk into the current shape */
+function migrate(raw) {
+  if (!raw || typeof raw !== "object" || !Array.isArray(raw.tracks) || !raw.tracks.length) return null;
+  raw.v = 1;
+  raw.courses = Array.isArray(raw.courses) ? raw.courses : [];
+  raw.resources = Array.isArray(raw.resources) ? raw.resources : [];
+  raw.log = Array.isArray(raw.log) ? raw.log : [];
+  raw.tracks.forEach((t) => {
+    t.steps = Array.isArray(t.steps) ? t.steps : [];
+    t.principles = Array.isArray(t.principles) ? t.principles : [];
+    t.exams = Array.isArray(t.exams) ? t.exams : [];
+    t.steps.forEach((s) => {
+      s.phases = Array.isArray(s.phases) ? s.phases : [];
+      s.phases.forEach((p) => {
+        p.materials = Array.isArray(p.materials) ? p.materials : [];
+        p.sections = Array.isArray(p.sections) ? p.sections : [];
+        p.sections.forEach((c) => { c.tasks = Array.isArray(c.tasks) ? c.tasks : []; });
+      });
+    });
+  });
+  if (!raw.tracks.some((t) => t.id === raw.activeTrack)) raw.activeTrack = raw.tracks[0].id;
+  return raw;
+}
+
+let state = freshState();
+let ui = {
+  view: "overview",
+  open: {},            // phaseId -> bool
+  planFilter: "all",   // all | todo | done
+  q: "",
+  courseFilter: "all",
+  resType: "all",
+  resTag: ""
+};
+
+function loadUI() {
+  try {
+    const raw = localStorage.getItem(UI_KEY);
+    if (raw) Object.assign(ui, JSON.parse(raw));
+  } catch { /* private mode, blocked storage — defaults are fine */ }
+}
+function saveUI() {
+  try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch { /* ignore */ }
+}
+
+/* ============================================================
+   Persistence — artifact file publish, mirrored to localStorage
+   ============================================================ */
+const store = {
+  api: null,
+  mode: "local",      // "cloud" | "local"
+  timer: null,
+  pending: false,
+  inflight: false,
+
+  async init() {
+    try {
+      this.api = (window.claude && typeof window.claude.use === "function")
+        ? await window.claude.use("artifact")
+        : null;
+    } catch { this.api = null; }
+    this.mode = this.api ? "cloud" : "local";
+  },
+
+  readLocal() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      return raw ? migrate(JSON.parse(raw)) : null;
+    } catch { return null; }
+  },
+
+  writeLocal(s) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); return true; }
+    catch { return false; }
+  },
+
+  async readRemote() {
+    try {
+      const res = await fetch(DATA_PATH + "?t=" + Date.now(), { cache: "no-store" });
+      if (!res.ok) return null;
+      return migrate(await res.json());
+    } catch { return null; }
+  },
+
+  queue() {
+    state.updatedAt = new Date().toISOString();
+    this.writeLocal(state);
+    this.pending = true;
+    setSaveChip("saving", "Збереження…");
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.flush(), 1400);
+  },
+
+  async flush() {
+    if (!this.pending || this.inflight) return;
+    if (this.mode !== "cloud" || !this.api) {
+      this.pending = false;
+      setSaveChip("local", "На цьому пристрої");
+      return;
+    }
+    this.inflight = true;
+    this.pending = false;
+    try {
+      const files = {};
+      files[DATA_PATH] = { content: JSON.stringify(state), contentType: "application/json" };
+      await this.api.publish(files);
+      setSaveChip("saved", "Збережено");
+    } catch (err) {
+      const code = (err && err.code) || "upstream_error";
+      if (code === "conflict") {
+        setSaveChip("error", "Змінено деінде");
+        toast("Дані змінилися в іншій вкладці. Оновіть сторінку, щоб підтягнути їх.", "bad");
+      } else if (code === "not_writer" || code === "not_granted" || code === "not_declared" ||
+                 code === "capability_disabled" || code === "capability_removed" || code === "consent_required") {
+        this.mode = "local";
+        setSaveChip("local", "На цьому пристрої");
+      } else if (code === "rate_limited") {
+        this.pending = true;
+        setSaveChip("saving", "Збереження…");
+        setTimeout(() => { this.inflight = false; this.flush(); }, 6000);
+        return;
+      } else {
+        setSaveChip("error", "Не збережено");
+        toast("Не вдалося зберегти на сервері — дані лишились у цьому браузері.", "bad");
+      }
+    } finally {
+      this.inflight = false;
+      if (this.pending) setTimeout(() => this.flush(), 800);
+    }
+  }
+};
+
+/* commit: mutate state, re-render, schedule a save */
+function commit(fn, opts) {
+  if (typeof fn === "function") fn();
+  store.queue();
+  if (!opts || opts.render !== false) render();
+}
+
+function setSaveChip(stateName, text) {
+  const chip = $("#saveChip");
+  if (!chip) return;
+  chip.dataset.state = stateName;
+  $("#saveChipText").textContent = text;
+}
+
+/* ============================================================
+   Toast
+   ============================================================ */
+function toast(msg, kind) {
+  const wrap = $("#toasts");
+  const el = document.createElement("div");
+  el.className = "toast" + (kind === "bad" ? " toast--bad" : kind === "good" ? " toast--good" : "");
+  el.innerHTML = '<span class="toast__ico">' + ico(kind === "bad" ? "warn" : "check") + "</span><span>" + esc(msg) + "</span>";
+  wrap.appendChild(el);
+  setTimeout(() => {
+    el.style.transition = "opacity .25s linear";
+    el.style.opacity = "0";
+    setTimeout(() => el.remove(), 280);
+  }, kind === "bad" ? 5200 : 2600);
+}
+
+function xpBurst(anchor, text) {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const r = anchor.getBoundingClientRect();
+  const el = document.createElement("div");
+  el.className = "xpfloat";
+  el.textContent = text;
+  el.style.left = Math.round(r.right + 6) + "px";
+  el.style.top = Math.round(r.top - 2) + "px";
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 950);
+}
+
+/* ============================================================
+   Derived stats
+   ============================================================ */
+const activeTrack = () => state.tracks.find((t) => t.id === state.activeTrack) || state.tracks[0];
+
+function eachTask(track, fn) {
+  (track.steps || []).forEach((s) =>
+    (s.phases || []).forEach((p) =>
+      (p.sections || []).forEach((c) =>
+        (c.tasks || []).forEach((t) => fn(t, c, p, s)))));
+}
+
+function countTasks(node) {
+  let done = 0, total = 0;
+  const walkSection = (c) => (c.tasks || []).forEach((t) => { total++; if (t.done) done++; });
+  const walkPhase = (p) => (p.sections || []).forEach(walkSection);
+  const walkStep = (s) => (s.phases || []).forEach(walkPhase);
+  if (node.steps) node.steps.forEach(walkStep);
+  else if (node.phases) walkStep(node);
+  else if (node.sections) walkPhase(node);
+  else walkSection(node);
+  return { done: done, total: total, pct: pct(done, total) };
+}
+
+/* hours credited proportionally to task completion inside each phase */
+function hoursDone(track) {
+  let h = 0;
+  (track.steps || []).forEach((s) =>
+    (s.phases || []).forEach((p) => {
+      const c = countTasks(p);
+      if (p.hours && c.total) h += (p.hours * c.done) / c.total;
+    }));
+  return Math.round(h);
+}
+
+function levelFor(doneCount) {
+  const lvl = Math.floor(doneCount / 12) + 1;
+  const into = doneCount % 12;
+  return { level: lvl, into: into, need: 12, pct: Math.round((into / 12) * 100) };
+}
+
+/* the phase that is currently in play: first one not finished */
+function currentPhase(track) {
+  for (const s of track.steps || []) {
+    for (const p of s.phases || []) {
+      const c = countTasks(p);
+      if (c.total && c.done < c.total) return { step: s, phase: p, count: c };
+    }
+  }
+  return null;
+}
+
+function nextTasks(track, n) {
+  const out = [];
+  for (const s of track.steps || []) {
+    for (const p of s.phases || []) {
+      for (const c of p.sections || []) {
+        for (const t of c.tasks || []) {
+          if (!t.done) {
+            out.push({ task: t, section: c, phase: p, step: s });
+            if (out.length >= n) return out;
+          }
+        }
+      }
+    }
+  }
+  return out;
+}
+
+function recentDone(track, n) {
+  const out = [];
+  eachTask(track, (t, c, p) => { if (t.done && t.doneAt) out.push({ task: t, section: c, phase: p }); });
+  out.sort((a, b) => (a.task.doneAt < b.task.doneAt ? 1 : a.task.doneAt > b.task.doneAt ? -1 : 0));
+  return out.slice(0, n);
+}
+
+function activeDays(track) {
+  const days = new Set();
+  eachTask(track, (t) => { if (t.doneAt) days.add(t.doneAt); });
+  return days;
+}
+
+/* ============================================================
+   Small render helpers
+   ============================================================ */
+function bar(p, mod, cls) {
+  return '<div class="bar ' + (mod || "") + " " + (cls || "") + '" role="progressbar" aria-valuenow="' + p +
+    '" aria-valuemin="0" aria-valuemax="100"><div class="bar__fill" style="width:' + p + '%"></div></div>';
+}
+function chip(text, mod) {
+  return '<span class="chip ' + (mod || "") + '">' + esc(text) + "</span>";
+}
+function linkOut(url, label) {
+  const u = safeUrl(url);
+  if (!u) return esc(label || "");
+  return '<a class="ccard__link" href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' +
+    ico("ext") + "<span>" + esc(label || hostOf(u) || u) + "</span></a>";
+}
+function hoursLabel(h) { return h ? nf.format(h) + " год" : ""; }
+
+const STATUS = {
+  planned: { label: "Заплановано", mod: "chip--todo" },
+  active: { label: "У процесі", mod: "chip--doing" },
+  done: { label: "Пройдено", mod: "chip--done" },
+  paused: { label: "На паузі", mod: "chip--warn" }
+};
+const RES_TYPES = {
+  article: "Стаття", paper: "Пейпер", doc: "Docs", video: "Відео",
+  repo: "Репо", course: "Курс", tool: "Інструмент", book: "Книга", other: "Інше"
+};
+
+/* ============================================================
+   Render — rail
+   ============================================================ */
+const NAV = [
+  { id: "overview", label: "Огляд", icon: "grid" },
+  { id: "plan", label: "План", icon: "list" },
+  { id: "courses", label: "Курси", icon: "book" },
+  { id: "resources", label: "Матеріали", icon: "link" },
+  { id: "log", label: "Журнал", icon: "pen" },
+  { id: "ref", label: "Довідка", icon: "flag" }
+];
+
+function renderRail() {
+  const tr = activeTrack();
+
+  $("#trackList").innerHTML = state.tracks.map((t) => {
+    const c = countTasks(t);
+    return '<button class="trackbtn" type="button" data-act="track" data-id="' + esc(t.id) + '"' +
+      ' aria-current="' + (t.id === tr.id) + '">' +
+      '<div class="trackbtn__name">' + esc(t.title) + "</div>" +
+      bar(c.pct, "bar--sm") +
+      '<div class="trackbtn__meta"><span class="px faint">' + c.done + "/" + c.total + "</span>" +
+      '<span class="px faint">' + c.pct + "%</span></div></button>";
+  }).join("");
+
+  const counts = {
+    plan: countTasks(tr).total,
+    courses: state.courses.length,
+    resources: state.resources.length,
+    log: state.log.length
+  };
+  $("#navList").innerHTML = NAV.map((n) => {
+    const cur = ui.view === n.id;
+    const cnt = counts[n.id];
+    return '<button class="navbtn" type="button" data-act="view" data-id="' + n.id + '"' +
+      (cur ? ' aria-current="page"' : "") + ">" + ico(n.icon) +
+      "<span>" + esc(n.label) + "</span>" +
+      (cnt ? '<span class="navbtn__count">' + cnt + "</span>" : "") + "</button>";
+  }).join("");
+
+  const c = countTasks(tr);
+  const lv = levelFor(c.done);
+  const hd = hoursDone(tr);
+  $("#railStats").innerHTML =
+    cell("Рівень", lv.level) +
+    cell("Готово", c.pct + "%") +
+    cell("Задач", c.done + "/" + c.total) +
+    cell("Годин", hd + "/" + (tr.hours || 0));
+
+  $("#brandSub").textContent = tr.title;
+
+  function cell(k, v) {
+    return '<div class="railstat__cell"><div class="railstat__k">' + esc(k) + "</div>" +
+      '<div class="railstat__v">' + esc(String(v)) + "</div></div>";
+  }
+}
+
+/* ============================================================
+   Render — overview
+   ============================================================ */
+function viewOverview() {
+  const tr = activeTrack();
+  const c = countTasks(tr);
+  const lv = levelFor(c.done);
+  const hd = hoursDone(tr);
+  const cur = currentPhase(tr);
+  const days = activeDays(tr);
+  const started = parseISO(tr.start);
+  const dayNo = started ? Math.max(1, daysBetween(started, new Date()) + 1) : null;
+
+  const hero =
+    '<section class="hero">' +
+      '<div class="hero__left">' +
+        '<div class="hero__eyebrow">' +
+          '<span class="chip chip--clay">' + esc(tr.budget || "Особистий трек") + "</span>" +
+          (started ? '<span class="chip">Старт ' + esc(fmtLong(tr.start)) + "</span>" : "") +
+          (dayNo ? '<span class="chip">День ' + dayNo + "</span>" : "") +
+        "</div>" +
+        '<h1 class="hero__title">' + esc(tr.title) + "</h1>" +
+        (tr.subtitle ? '<p class="hero__note">' + fmt(tr.subtitle) + "</p>" : "") +
+        '<div class="statgrid">' +
+          stat("Задач закрито", c.done + '<small> / ' + c.total + "</small>", c.pct + "% плану") +
+          stat("Годин пройдено", hd + '<small> / ' + (tr.hours || 0) + "</small>", "за вагою фаз") +
+          stat("Активних днів", days.size, days.size ? "останній " + fmtShort(maxDate(days)) : "ще не почато") +
+        "</div>" +
+      "</div>" +
+
+      '<div class="hero__right">' +
+        '<div class="levelbox">' +
+          '<div class="levelbox__tile"><span class="levelbox__lab">Рівень</span>' +
+            '<span class="levelbox__num">' + lv.level + "</span></div>" +
+          '<div class="levelbox__meta">' +
+            '<div class="levelbox__row"><span class="px">До рівня ' + (lv.level + 1) + "</span>" +
+              '<span class="px mono">' + lv.into + "/" + lv.need + "</span></div>" +
+            bar(lv.pct, "bar--moss") +
+            '<div class="levelbox__row"><span class="px">Загальний прогрес</span>' +
+              '<span class="px" style="color:var(--clay-ink)">' + c.pct + "%</span></div>" +
+            bar(c.pct) +
+          "</div>" +
+        "</div>" +
+        (cur
+          ? '<div class="card card--flat" style="padding:12px 13px;display:flex;flex-direction:column;gap:8px">' +
+              '<div class="px faint">Зараз у роботі</div>' +
+              '<div style="font-weight:600;font-size:14px;line-height:1.3">' + esc(cur.phase.title) + "</div>" +
+              '<div class="row row--tight">' + chip(cur.step.tag + " · " + cur.step.title) +
+                (cur.phase.hours ? chip(hoursLabel(cur.phase.hours)) : "") + "</div>" +
+              bar(cur.count.pct, "bar--sm") +
+              '<div class="px faint">' + cur.count.done + " / " + cur.count.total + " задач</div>" +
+              '<button class="btn btn--sm" type="button" data-act="goto-phase" data-id="' + esc(cur.phase.id) + '">' +
+                "Відкрити фазу</button>" +
+            "</div>"
+          : '<div class="card card--flat" style="padding:14px"><div class="px" style="color:var(--moss)">Трек пройдено</div>' +
+            '<p class="muted" style="font-size:13px;margin-top:6px">Усі задачі закриті. Час додати новий трек.</p></div>') +
+      "</div>" +
+    "</section>";
+
+  const steps =
+    '<section class="col">' +
+      '<div class="sechead"><h2>Steps</h2><span class="sechead__rule"></span>' +
+        '<span class="px faint">' + (tr.steps || []).length + " всього</span></div>" +
+      '<div class="ladder">' + (tr.steps || []).map((s, i) => {
+        const sc = countTasks(s);
+        const mod = sc.total && sc.done === sc.total ? "step--done" : (sc.done > 0 ? "step--doing" : "");
+        return '<button class="step ' + mod + '" type="button" data-act="goto-step" data-id="' + esc(s.id) + '">' +
+          '<span class="step__n" aria-hidden="true">' + (i + 1) + "</span>" +
+          '<span class="step__body">' +
+            '<span class="step__name">' + esc(s.title) + "</span>" +
+            '<span class="step__meta"><span>' + (s.phases || []).length + " фаз</span>" +
+              (s.hours ? "<span>· " + hoursLabel(s.hours) + "</span>" : "") +
+              (s.artifact ? "<span>· " + esc(s.artifact) + "</span>" : "") + "</span>" +
+            bar(sc.pct, "bar--sm") +
+          "</span>" +
+          '<span class="step__pct">' + sc.pct + "%</span></button>";
+      }).join("") + "</div>" +
+    "</section>";
+
+  const nxt = nextTasks(tr, 7);
+  const rec = recentDone(tr, 6);
+  const nextPanel =
+    '<section class="panel"><div class="panel__head">' +
+      '<span class="panel__title">' + "Наступні кроки" + "</span>" +
+      '<button class="btn btn--sm btn--ghost" type="button" data-act="view" data-id="plan">Весь план</button>' +
+    "</div>" +
+    (nxt.length
+      ? '<div class="panel__body panel__body--tight"><div class="nextlist">' + nxt.map((n) =>
+          '<div class="nextrow">' +
+            '<input class="pcheck" type="checkbox" data-act="toggle" data-id="' + esc(n.task.id) + '"' +
+              ' aria-label="' + esc(n.task.text.slice(0, 90)) + '">' +
+            '<div class="nextrow__txt">' + fmt(n.task.text) +
+              '<div class="nextrow__where">' + esc(n.phase.title) + " · " + esc(n.section.title) + "</div>" +
+            "</div></div>").join("") + "</div></div>"
+      : '<div class="panel__body"><div class="empty">' + ico("check", "empty__ico") +
+        "<span>Усе закрито. Додай нові задачі або трек.</span></div></div>") +
+    "</section>";
+
+  const recentPanel =
+    '<section class="panel"><div class="panel__head"><span class="panel__title">Нещодавно закрито</span>' +
+      '<span class="px faint">' + days.size + " активних днів</span></div>" +
+    (rec.length
+      ? '<div class="panel__body panel__body--tight"><div class="nextlist">' + rec.map((n) =>
+          '<div class="nextrow">' +
+            '<span class="matrow__ico" style="color:var(--moss);margin-top:3px">' + ico("check") + "</span>" +
+            '<div class="nextrow__txt is-done">' + fmt(n.task.text) +
+              '<div class="nextrow__where">' + esc(n.phase.title) + "</div></div>" +
+            '<span class="task__date">' + esc(fmtShort(n.task.doneAt)) + "</span>" +
+          "</div>").join("") + "</div></div>"
+      : '<div class="panel__body"><div class="empty">' + ico("spark", "empty__ico") +
+        "<span>Ще нічого не відмічено. Перша галочка — найважча.</span></div></div>") +
+    "</section>";
+
+  const activeCourses = state.courses.filter((x) => x.status === "active");
+  const coursePanel =
+    '<section class="panel"><div class="panel__head"><span class="panel__title">Курси в роботі</span>' +
+      '<button class="btn btn--sm btn--ghost" type="button" data-act="add-course">' + ico("plus") + "Додати</button></div>" +
+    (activeCourses.length
+      ? '<div class="panel__body">' + activeCourses.map((cs) =>
+          '<div class="col" style="gap:6px">' +
+            '<div class="row" style="justify-content:space-between"><b style="font-size:13.5px">' + esc(cs.title) + "</b>" +
+              '<span class="px faint">' + (cs.progress || 0) + "%</span></div>" +
+            bar(cs.progress || 0, "bar--sm bar--slate") +
+          "</div>").join("") + "</div>"
+      : '<div class="panel__body"><div class="empty">' + ico("book", "empty__ico") +
+        "<span>Жоден курс не позначено як «у процесі».</span>" +
+        '<button class="btn btn--sm" type="button" data-act="view" data-id="courses">Відкрити курси</button></div></div>') +
+    "</section>";
+
+  const lastLog = state.log.slice().sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 3);
+  const logPanel =
+    '<section class="panel"><div class="panel__head"><span class="panel__title">Журнал</span>' +
+      '<button class="btn btn--sm btn--ghost" type="button" data-act="add-log">' + ico("plus") + "Запис</button></div>" +
+    (lastLog.length
+      ? '<div class="panel__body panel__body--tight">' + lastLog.map((l) =>
+          '<div class="logrow"><div class="logrow__date">' + esc(fmtShort(l.date)) + "</div>" +
+          '<div class="logrow__txt">' + esc(l.text.length > 220 ? l.text.slice(0, 220) + "…" : l.text) + "</div><div></div></div>").join("") + "</div>"
+      : '<div class="panel__body"><div class="empty">' + ico("note", "empty__ico") +
+        "<span>Щоденна нотатка: що не зрозумів, який приклад допоміг, де здивувався.</span></div></div>") +
+    "</section>";
+
+  return '<div class="view">' + hero + steps +
+    '<div class="cols">' + nextPanel + recentPanel + "</div>" +
+    '<div class="cols">' + coursePanel + logPanel + "</div>" +
+    "</div>";
+
+  function stat(k, v, hint) {
+    return '<div class="stat"><div class="stat__k">' + esc(k) + '</div><div class="stat__v">' + v + "</div>" +
+      (hint ? '<div class="stat__hint">' + esc(hint) + "</div>" : "") + "</div>";
+  }
+  function maxDate(set) { let m = ""; set.forEach((d) => { if (d > m) m = d; }); return m; }
+}
+
+/* ============================================================
+   Render — plan
+   ============================================================ */
+function taskMatches(t) {
+  if (ui.planFilter === "todo" && t.done) return false;
+  if (ui.planFilter === "done" && !t.done) return false;
+  if (ui.q) {
+    const q = ui.q.toLowerCase();
+    if (!(t.text || "").toLowerCase().includes(q) && !(t.note || "").toLowerCase().includes(q)) return false;
+  }
+  return true;
+}
+
+function viewPlan() {
+  const tr = activeTrack();
+  const filtering = ui.planFilter !== "all" || !!ui.q;
+  let shown = 0;
+
+  const toolbar =
+    '<div class="toolbar">' +
+      '<label class="toolbar__search">' +
+        '<span class="sr">Пошук по задачах</span>' + ico("search") +
+        '<input class="field" id="planSearch" type="search" autocomplete="off" spellcheck="false"' +
+        ' placeholder="Пошук по задачах…" value="' + esc(ui.q) + '">' +
+      "</label>" +
+      '<div class="segmented" role="group" aria-label="Фільтр задач">' +
+        seg("all", "Усі") + seg("todo", "Відкриті") + seg("done", "Закриті") +
+      "</div>" +
+      '<button class="btn btn--sm btn--ghost" type="button" data-act="expand-all">Розгорнути</button>' +
+      '<button class="btn btn--sm btn--ghost" type="button" data-act="collapse-all">Згорнути</button>' +
+    "</div>";
+
+  const body = (tr.steps || []).map((s) => {
+    const sc = countTasks(s);
+    let phases = (s.phases || []).map((p) => renderPhase(p, s)).join("");
+    if (!phases && !filtering) {
+      phases = '<div class="empty">' + ico("target", "empty__ico") +
+        "<span>У цьому step ще немає фаз. Фаза — це блок навчання з задачами, матеріалами і контрольною точкою.</span>" +
+        '<button class="btn btn--sm btn--primary" type="button" data-act="add-phase" data-id="' + esc(s.id) + '">' +
+        ico("plus") + "Додати фазу</button></div>";
+    }
+    return '<section class="stepblock" id="' + esc(s.id) + '">' +
+      '<div class="stepblock__head">' +
+        '<span class="stepblock__tag">' + esc(s.tag) + "</span>" +
+        '<h2 class="stepblock__name">' + esc(s.title) + "</h2>" +
+        '<div class="row row--tight">' +
+          (s.hours ? chip(hoursLabel(s.hours)) : "") +
+          chip(sc.done + "/" + sc.total) +
+          chip(sc.pct + "%", sc.pct === 100 ? "chip--done" : sc.pct > 0 ? "chip--doing" : "") +
+          '<button class="iconbtn" type="button" data-act="add-phase" data-id="' + esc(s.id) + '" aria-label="Додати фазу до ' + esc(s.title) + '">' + ico("plus") + "</button>" +
+        "</div>" +
+        (s.sub ? '<p class="stepblock__art muted" style="width:100%">' + fmt(s.sub) + "</p>" : "") +
+        (s.artifact ? '<div class="stepblock__art"><span class="px faint">Артефакт</span><b>' + esc(s.artifact) + "</b></div>" : "") +
+      "</div>" + phases + "</section>";
+  }).join("");
+
+  const nothing = filtering && shown === 0
+    ? '<div class="empty">' + ico("search", "empty__ico") + "<span>Нічого не знайшлося за цим фільтром.</span>" +
+      '<button class="btn btn--sm" type="button" data-act="clear-filter">Скинути фільтр</button></div>'
+    : "";
+
+  return '<div class="view">' +
+    '<div class="viewhead"><div><h1>План</h1>' +
+      '<p class="viewhead__sub">' + esc(tr.subtitle || "Кроки, фази і задачі треку.") + "</p></div>" +
+      '<button class="btn" type="button" data-act="add-step">' + ico("plus") + "Новий step</button></div>" +
+    toolbar + nothing +
+    ((tr.steps || []).length
+      ? body
+      : '<div class="empty">' + ico("flag", "empty__ico") +
+        "<span>Трек порожній. Почни з step — великого етапу, що закінчується робочим артефактом.</span>" +
+        '<button class="btn btn--sm btn--primary" type="button" data-act="add-step">' + ico("plus") + "Створити перший step</button></div>") +
+    "</div>";
+
+  function seg(v, label) {
+    return '<button type="button" data-act="filter" data-id="' + v + '" aria-pressed="' + (ui.planFilter === v) + '">' + esc(label) + "</button>";
+  }
+
+  function renderPhase(p, s) {
+    const c = countTasks(p);
+    const tasksHtml = (p.sections || []).map((sec) => renderSection(sec, p)).join("");
+    const hasVisible = /class="task /.test(tasksHtml);
+    if (filtering && !hasVisible) return "";
+    if (!filtering || hasVisible) shown += hasVisible ? 1 : 0;
+
+    const open = filtering ? true : !!ui.open[p.id];
+    const mats = renderMaterials(p);
+
+    return '<article class="phase' + (p.kind === "project" ? " phase--project" : "") + '" id="' + esc(p.id) + '" data-open="' + open + '">' +
+      '<button class="phase__head" type="button" data-act="toggle-phase" data-id="' + esc(p.id) + '" aria-expanded="' + open + '">' +
+        '<span class="phase__caret">' + ico("chev") + "</span>" +
+        '<span class="phase__title">' +
+          '<span class="phase__name">' + (p.kind === "project" ? "🎯 " : "") + esc(p.title) + "</span>" +
+          (p.goal ? '<span class="phase__goal">' + fmt(p.goal) + "</span>" : "") +
+        "</span>" +
+        '<span class="phase__right">' +
+          (p.hours ? '<span class="chip">' + esc(hoursLabel(p.hours)) + "</span>" : "") +
+          '<span class="phase__ratio">' + c.done + "/" + c.total + "</span>" +
+          '<span class="phase__minibar">' + bar(c.pct, "bar--sm") + "</span>" +
+        "</span>" +
+      "</button>" +
+      (open
+        ? '<div class="phase__inner">' + mats +
+            (p.note ? '<p class="section__note" style="padding:8px 14px 0">' + fmt(p.note) + "</p>" : "") +
+            tasksHtml +
+            (p.checkpoint ? checkpointHtml("Контрольна точка фази", p.checkpoint) : "") +
+            '<div class="addline"><button class="btn btn--sm btn--ghost" type="button" data-act="add-section" data-id="' + esc(p.id) + '">' +
+              ico("plus") + "Новий блок</button>" +
+              '<button class="btn btn--sm btn--ghost" type="button" data-act="add-material" data-id="' + esc(p.id) + '">' + ico("link") + "Матеріал</button>" +
+              '<button class="btn btn--sm btn--ghost" type="button" data-act="edit-phase" data-id="' + esc(p.id) + '">' + ico("pen") + "Змінити</button>" +
+              '<button class="btn btn--sm btn--ghost btn--danger" type="button" data-act="del-phase" data-id="' + esc(p.id) + '">' + ico("trash") + "</button>" +
+            "</div>" +
+          "</div>"
+        : "") +
+      "</article>";
+  }
+
+  function renderMaterials(p) {
+    if (!(p.materials || []).length) return "";
+    const groups = new Map();
+    p.materials.forEach((m) => {
+      const g = m.g || "";
+      if (!groups.has(g)) groups.set(g, []);
+      groups.get(g).push(m);
+    });
+    let out = "";
+    groups.forEach((items, g) => {
+      out += '<div class="matlist">' +
+        (g ? '<div class="px faint" style="margin-bottom:2px">' + esc(g) + "</div>" : "") +
+        '<div class="matgrid">' +
+        items.map((m) =>
+          '<div class="matrow"><span class="matrow__ico">' + ico("link") + "</span>" +
+            '<span class="matrow__body">' +
+              (safeUrl(m.u)
+                ? '<a href="' + esc(safeUrl(m.u)) + '" target="_blank" rel="noopener noreferrer">' + esc(m.t) + "</a>"
+                : esc(m.t)) +
+              (m.n ? '<span class="matrow__note"> — ' + esc(m.n) + "</span>" : "") +
+            "</span>" +
+            '<button class="iconbtn" type="button" data-act="del-material" data-id="' + esc(m.id) + '" aria-label="Прибрати матеріал" style="width:22px;height:22px">' + ico("trash") + "</button>" +
+          "</div>").join("") + "</div></div>";
+    });
+    return out;
+  }
+
+  function renderSection(sec, p) {
+    const visible = (sec.tasks || []).filter(taskMatches);
+    if (filtering && !visible.length) return "";
+    const c = countTasks(sec);
+    return '<div class="section" id="' + esc(sec.id) + '">' +
+      '<div class="section__head">' +
+        '<span class="section__name">' + esc(sec.title) + "</span>" +
+        (sec.hours ? '<span class="px faint">' + esc(hoursLabel(sec.hours)) + "</span>" : "") +
+        '<span class="px faint">' + c.done + "/" + c.total + "</span>" +
+        '<span class="grow"></span>' +
+        '<button class="iconbtn" type="button" data-act="add-task" data-id="' + esc(sec.id) + '" aria-label="Додати задачу в ' + esc(sec.title) + '" style="width:24px;height:24px">' + ico("plus") + "</button>" +
+        '<button class="iconbtn" type="button" data-act="edit-section" data-id="' + esc(sec.id) + '" aria-label="Змінити блок" style="width:24px;height:24px">' + ico("pen") + "</button>" +
+        '<button class="iconbtn" type="button" data-act="del-section" data-id="' + esc(sec.id) + '" aria-label="Видалити блок" style="width:24px;height:24px">' + ico("trash") + "</button>" +
+      "</div>" +
+      (sec.note ? '<p class="section__note">' + fmt(sec.note) + "</p>" : "") +
+      '<div class="tasks">' + visible.map(renderTask).join("") + "</div>" +
+      (sec.checkpoint ? checkpointHtml("Контрольна точка", sec.checkpoint) : "") +
+      "</div>";
+  }
+
+  function renderTask(t) {
+    return '<div class="task ' + (t.done ? "is-done" : "") + '">' +
+      '<label class="task__lab">' +
+        '<input class="pcheck" type="checkbox" data-act="toggle" data-id="' + esc(t.id) + '"' + (t.done ? " checked" : "") + ">" +
+        '<span class="grow"><span class="task__txt">' + fmt(t.text) + "</span>" +
+          (t.note ? '<span class="task__note">' + fmt(t.note) + "</span>" : "") +
+        "</span>" +
+      "</label>" +
+      (t.doneAt ? '<span class="task__date">' + esc(fmtShort(t.doneAt)) + "</span>" : "") +
+      '<span class="task__act">' +
+        '<button class="iconbtn" type="button" data-act="edit-task" data-id="' + esc(t.id) + '" aria-label="Змінити задачу" style="width:24px;height:24px">' + ico("pen") + "</button>" +
+        '<button class="iconbtn" type="button" data-act="del-task" data-id="' + esc(t.id) + '" aria-label="Видалити задачу" style="width:24px;height:24px">' + ico("trash") + "</button>" +
+      "</span></div>";
+  }
+
+  function checkpointHtml(label, text) {
+    return '<div class="checkpoint"><span class="checkpoint__ico">' + ico("target") + "</span>" +
+      "<span><b>" + esc(label) + ".</b> " + fmt(text) + "</span></div>";
+  }
+}
+
+/* ============================================================
+   Render — courses
+   ============================================================ */
+function viewCourses() {
+  const f = ui.courseFilter;
+  const list = state.courses.filter((c) => f === "all" || c.status === f);
+  const order = { active: 0, planned: 1, paused: 2, done: 3 };
+  list.sort((a, b) => (order[a.status] - order[b.status]) || a.title.localeCompare(b.title, LOCALE));
+
+  const counts = state.courses.reduce((acc, c) => { acc[c.status] = (acc[c.status] || 0) + 1; return acc; }, {});
+  const totalH = state.courses.reduce((s, c) => s + (Number(c.hours) || 0), 0);
+  const doneH = state.courses.reduce((s, c) => s + ((Number(c.hours) || 0) * (Number(c.progress) || 0)) / 100, 0);
+
+  const filters = '<div class="filters">' +
+    ["all", "active", "planned", "paused", "done"].map((k) =>
+      '<button class="tagbtn" type="button" data-act="course-filter" data-id="' + k + '" aria-pressed="' + (f === k) + '">' +
+      esc(k === "all" ? "Усі" : STATUS[k].label) +
+      (k === "all" ? " · " + state.courses.length : counts[k] ? " · " + counts[k] : "") + "</button>").join("") +
+    "</div>";
+
+  const cards = list.map((c) => {
+    const st = STATUS[c.status] || STATUS.planned;
+    return '<article class="ccard">' +
+      '<div class="ccard__top"><div class="grow"><div class="ccard__name">' + esc(c.title) + "</div>" +
+        (c.provider ? '<div class="ccard__prov">' + esc(c.provider) + "</div>" : "") + "</div>" +
+        '<div class="ccard__acts">' +
+          '<button class="iconbtn" type="button" data-act="edit-course" data-id="' + esc(c.id) + '" aria-label="Змінити курс" style="width:26px;height:26px">' + ico("pen") + "</button>" +
+          '<button class="iconbtn" type="button" data-act="del-course" data-id="' + esc(c.id) + '" aria-label="Видалити курс" style="width:26px;height:26px">' + ico("trash") + "</button>" +
+        "</div></div>" +
+      '<div class="row row--tight">' + chip(st.label, st.mod) +
+        (c.hours ? chip(hoursLabel(c.hours)) : "") + (c.phase ? chip(c.phase) : "") + "</div>" +
+      '<div class="col" style="gap:5px">' +
+        '<div class="row" style="justify-content:space-between"><span class="px faint">Прогрес</span>' +
+          '<span class="px" style="color:var(--clay-ink)">' + (c.progress || 0) + "%</span></div>" +
+        bar(c.progress || 0, c.status === "done" ? "bar--moss" : "bar--slate", "bar--sm") +
+        '<input class="pxrange" type="range" min="0" max="100" step="5" value="' + (c.progress || 0) + '"' +
+          ' data-act="course-progress" data-id="' + esc(c.id) + '" aria-label="Прогрес курсу ' + esc(c.title) + '">' +
+      "</div>" +
+      (c.note ? '<div class="ccard__note">' + fmt(c.note) + "</div>" : "") +
+      ((c.tags || []).length ? '<div class="ccard__tags">' + c.tags.map((t) => chip(t)).join("") + "</div>" : "") +
+      '<div class="ccard__foot">' + (c.url ? linkOut(c.url) : '<span class="px faint">без посилання</span>') + "</div>" +
+      "</article>";
+  }).join("");
+
+  return '<div class="view">' +
+    '<div class="viewhead"><div><h1>Курси</h1>' +
+      '<p class="viewhead__sub">Курси, learning paths і відео, які проходиш. Повзунок під карткою — прогрес.</p></div>' +
+      '<button class="btn btn--primary" type="button" data-act="add-course">' + ico("plus") + "Додати курс</button></div>" +
+    '<div class="statgrid">' +
+      '<div class="stat"><div class="stat__k">Усього курсів</div><div class="stat__v">' + state.courses.length + "</div></div>" +
+      '<div class="stat"><div class="stat__k">У процесі</div><div class="stat__v">' + (counts.active || 0) + "</div></div>" +
+      '<div class="stat"><div class="stat__k">Пройдено</div><div class="stat__v">' + (counts.done || 0) + "</div></div>" +
+      '<div class="stat"><div class="stat__k">Годин</div><div class="stat__v">' + Math.round(doneH) + "<small> / " + totalH + "</small></div></div>" +
+    "</div>" +
+    filters +
+    (list.length ? '<div class="grid">' + cards + "</div>"
+      : '<div class="empty">' + ico("book", "empty__ico") + "<span>Тут поки порожньо.</span>" +
+        '<button class="btn btn--sm" type="button" data-act="add-course">Додати перший курс</button></div>') +
+    "</div>";
+}
+
+/* ============================================================
+   Render — resources
+   ============================================================ */
+function viewResources() {
+  const allTags = new Map();
+  state.resources.forEach((r) => (r.tags || []).forEach((t) => allTags.set(t, (allTags.get(t) || 0) + 1)));
+  const tags = Array.from(allTags.entries()).sort((a, b) => b[1] - a[1]).slice(0, 18);
+
+  let list = state.resources.slice();
+  if (ui.resType !== "all") list = list.filter((r) => r.type === ui.resType);
+  if (ui.resTag) list = list.filter((r) => (r.tags || []).includes(ui.resTag));
+  list.sort((a, b) => (b.starred ? 1 : 0) - (a.starred ? 1 : 0) || a.title.localeCompare(b.title, LOCALE));
+
+  const typeFilters = '<div class="filters">' +
+    '<button class="tagbtn" type="button" data-act="res-type" data-id="all" aria-pressed="' + (ui.resType === "all") + '">Усі · ' + state.resources.length + "</button>" +
+    Object.keys(RES_TYPES).map((k) => {
+      const n = state.resources.filter((r) => r.type === k).length;
+      if (!n) return "";
+      return '<button class="tagbtn" type="button" data-act="res-type" data-id="' + k + '" aria-pressed="' + (ui.resType === k) + '">' +
+        esc(RES_TYPES[k]) + " · " + n + "</button>";
+    }).join("") + "</div>";
+
+  const tagFilters = tags.length
+    ? '<div class="filters"><span class="px faint" style="margin-right:2px">Теги</span>' +
+      tags.map(([t, n]) =>
+        '<button class="tagbtn" type="button" data-act="res-tag" data-id="' + esc(t) + '" aria-pressed="' + (ui.resTag === t) + '">' +
+        esc(t) + " · " + n + "</button>").join("") + "</div>"
+    : "";
+
+  const cards = list.map((r) =>
+    '<article class="ccard ccard--res">' +
+      '<div class="ccard__top"><div class="grow">' +
+        '<div class="ccard__name">' + esc(r.title) + "</div>" +
+        (r.url ? '<div class="ccard__prov mono">' + esc(hostOf(safeUrl(r.url))) + "</div>" : "") + "</div>" +
+        '<div class="ccard__acts">' +
+          '<button class="iconbtn" type="button" data-act="star-res" data-id="' + esc(r.id) + '" aria-label="' +
+            (r.starred ? "Прибрати з обраного" : "Додати в обране") + '" style="width:26px;height:26px' +
+            (r.starred ? ";color:var(--clay-ink)" : "") + '">' + ico("spark") + "</button>" +
+          '<button class="iconbtn" type="button" data-act="edit-res" data-id="' + esc(r.id) + '" aria-label="Змінити матеріал" style="width:26px;height:26px">' + ico("pen") + "</button>" +
+          '<button class="iconbtn" type="button" data-act="del-res" data-id="' + esc(r.id) + '" aria-label="Видалити матеріал" style="width:26px;height:26px">' + ico("trash") + "</button>" +
+        "</div></div>" +
+      '<div class="row row--tight">' + chip(RES_TYPES[r.type] || "Інше", "chip--clay") +
+        (r.tags || []).map((t) => chip(t)).join("") + "</div>" +
+      (r.note ? '<div class="ccard__note">' + fmt(r.note) + "</div>" : "") +
+      '<div class="ccard__foot">' + (r.url ? linkOut(r.url, "Відкрити") : '<span class="px faint">без посилання</span>') +
+        '<span class="px faint">' + esc(fmtShort(r.added)) + "</span></div>" +
+    "</article>").join("");
+
+  return '<div class="view">' +
+    '<div class="viewhead"><div><h1>Матеріали</h1>' +
+      '<p class="viewhead__sub">Особиста бібліотека: статті, пейпери, docs, відео, інструменти. Все, що варто мати під рукою.</p></div>' +
+      '<button class="btn btn--primary" type="button" data-act="add-res">' + ico("plus") + "Додати матеріал</button></div>" +
+    typeFilters + tagFilters +
+    (list.length ? '<div class="grid">' + cards + "</div>"
+      : '<div class="empty">' + ico("link", "empty__ico") + "<span>За цим фільтром нічого немає.</span>" +
+        '<button class="btn btn--sm" type="button" data-act="res-clear">Скинути фільтри</button></div>') +
+    "</div>";
+}
+
+/* ============================================================
+   Render — journal
+   ============================================================ */
+function viewLog() {
+  const list = state.log.slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  return '<div class="view">' +
+    '<div class="viewhead"><div><h1>Журнал</h1>' +
+      '<p class="viewhead__sub">Не теорія — свої зачіпки. Що не зрозумів, який приклад допоміг, де здивувався.</p></div>' +
+      '<button class="btn btn--primary" type="button" data-act="add-log">' + ico("plus") + "Новий запис</button></div>" +
+    (list.length
+      ? '<section class="panel"><div class="panel__body panel__body--tight">' + list.map((l) =>
+          '<div class="logrow"><div class="logrow__date">' + esc(fmtShort(l.date)) + "</div>" +
+            '<div class="logrow__txt">' + esc(l.text) + "</div>" +
+            '<div class="row row--tight">' +
+              '<button class="iconbtn" type="button" data-act="edit-log" data-id="' + esc(l.id) + '" aria-label="Змінити запис" style="width:26px;height:26px">' + ico("pen") + "</button>" +
+              '<button class="iconbtn" type="button" data-act="del-log" data-id="' + esc(l.id) + '" aria-label="Видалити запис" style="width:26px;height:26px">' + ico("trash") + "</button>" +
+            "</div></div>").join("") + "</div></section>"
+      : '<div class="empty">' + ico("note", "empty__ico") +
+        "<span>Порожньо. Перший запис — просто напиши, над чим сидів сьогодні.</span>" +
+        '<button class="btn btn--sm" type="button" data-act="add-log">Написати</button></div>') +
+    "</div>";
+}
+
+/* ============================================================
+   Render — reference (principles + exams)
+   ============================================================ */
+function viewRef() {
+  const tr = activeTrack();
+  const principles = (tr.principles || []).length
+    ? '<div class="grid">' + tr.principles.map((p) =>
+        '<div class="rulecard"><div class="rulecard__t">' + esc(p.t) + "</div>" +
+        '<p class="prose">' + fmt(p.b) + "</p></div>").join("") + "</div>"
+    : '<div class="empty">' + ico("flag", "empty__ico") + "<span>Для цього треку правил не задано.</span></div>";
+
+  const exams = (tr.exams || []).length
+    ? (tr.exams || []).map((e) =>
+        '<section class="panel"><div class="panel__head">' +
+          '<span class="panel__title">' + esc(e.code) + "</span>" +
+          '<span class="px faint">' + esc(e.readiness || "") + "</span></div>" +
+        '<div class="panel__body">' +
+          "<h3 style=\"font-size:16px\">" + esc(e.title) + "</h3>" +
+          '<div class="row row--tight">' + (e.facts || []).map((f) => chip(f)).join("") + "</div>" +
+          ((e.domains || []).length
+            ? '<div class="tablewrap"><table class="t"><thead><tr><th>Домен</th><th>Вага</th></tr></thead><tbody>' +
+              e.domains.map((d) => "<tr><td>" + esc(d[0]) + '</td><td class="num">' + esc(d[1]) + "</td></tr>").join("") +
+              "</tbody></table></div>"
+            : "") +
+          ((e.links || []).length
+            ? '<div class="row row--tight">' + e.links.map((l) => linkOut(l.u, l.t)).join("") + "</div>"
+            : "") +
+        "</div></section>").join("")
+    : "";
+
+  return '<div class="view">' +
+    '<div class="viewhead"><div><h1>Довідка</h1>' +
+      '<p class="viewhead__sub">Наскрізні правила треку і довідка по іспитах. Іспити не є етапами плану — складаються за власним рішенням.</p></div></div>' +
+    (tr.role ? '<section class="panel"><div class="panel__head"><span class="panel__title">Ким стаємо</span></div>' +
+      '<div class="panel__body"><p class="prose">' + fmt(tr.role) + "</p>" +
+      (tr.note ? '<p class="prose">' + fmt(tr.note) + "</p>" : "") + "</div></section>" : "") +
+    '<div class="sechead"><h2>Наскрізні правила</h2><span class="sechead__rule"></span></div>' + principles +
+    (exams
+      ? '<div class="sechead"><h2>Іспити</h2><span class="sechead__rule"></span></div>' +
+        (tr.examsNote ? '<p class="prose">' + fmt(tr.examsNote) + "</p>" : "") +
+        '<div class="cols">' + exams + "</div>" +
+        (tr.examsSkip
+          ? '<div class="checkpoint"><span class="checkpoint__ico">' + ico("warn") + "</span>" +
+            "<span><b>Не беремо.</b> " + fmt(tr.examsSkip) + "</span></div>"
+          : "")
+      : "") +
+    "</div>";
+}
+
+/* ============================================================
+   Lookups
+   ============================================================ */
+function findTask(id) {
+  for (const tr of state.tracks)
+    for (const s of tr.steps || [])
+      for (const p of s.phases || [])
+        for (const c of p.sections || []) {
+          const i = (c.tasks || []).findIndex((t) => t.id === id);
+          if (i > -1) return { track: tr, step: s, phase: p, section: c, task: c.tasks[i], index: i };
+        }
+  return null;
+}
+function findSection(id) {
+  for (const tr of state.tracks)
+    for (const s of tr.steps || [])
+      for (const p of s.phases || []) {
+        const i = (p.sections || []).findIndex((c) => c.id === id);
+        if (i > -1) return { track: tr, step: s, phase: p, section: p.sections[i], index: i };
+      }
+  return null;
+}
+function findPhase(id) {
+  for (const tr of state.tracks)
+    for (const s of tr.steps || []) {
+      const i = (s.phases || []).findIndex((p) => p.id === id);
+      if (i > -1) return { track: tr, step: s, phase: s.phases[i], index: i };
+    }
+  return null;
+}
+function findStep(id) {
+  for (const tr of state.tracks) {
+    const i = (tr.steps || []).findIndex((s) => s.id === id);
+    if (i > -1) return { track: tr, step: tr.steps[i], index: i };
+  }
+  return null;
+}
+function findMaterial(id) {
+  for (const tr of state.tracks)
+    for (const s of tr.steps || [])
+      for (const p of s.phases || []) {
+        const i = (p.materials || []).findIndex((m) => m.id === id);
+        if (i > -1) return { phase: p, material: p.materials[i], index: i };
+      }
+  return null;
+}
+
+/* ============================================================
+   Modal form builder
+   ============================================================ */
+let modalSubmit = null;
+
+function openForm(opts) {
+  const dlg = $("#modal");
+  $("#modalTitle").textContent = opts.title;
+  $("#modalBody").innerHTML = '<div class="formgrid">' + opts.fields.map(fieldHtml).join("") + "</div>";
+  $("#modalFoot").innerHTML =
+    (opts.destructive ? '<button class="btn btn--sm btn--ghost btn--danger" type="button" data-modal="delete">' + ico("trash") + "Видалити</button>" : "") +
+    '<span class="spacer"></span>' +
+    '<button class="btn btn--sm btn--ghost" type="button" data-modal="cancel">Скасувати</button>' +
+    '<button class="btn btn--sm btn--primary" type="button" data-modal="ok">' + esc(opts.submit || "Зберегти") + "</button>";
+
+  modalSubmit = {
+    fields: opts.fields,
+    onSubmit: opts.onSubmit,
+    onDelete: opts.onDelete
+  };
+  if (!dlg.open) dlg.showModal();
+  const first = $("#modalBody").querySelector("input,textarea,select");
+  if (first && window.matchMedia("(min-width: 760px)").matches) first.focus();
+
+  function fieldHtml(f) {
+    const id = "f_" + f.name;
+    const common = 'class="field" id="' + id + '" name="' + esc(f.name) + '"';
+    let control;
+    if (f.type === "textarea") {
+      control = "<textarea " + common + ' rows="' + (f.rows || 3) + '" placeholder="' + esc(f.placeholder || "") + '">' + esc(f.value || "") + "</textarea>";
+    } else if (f.type === "select") {
+      control = "<select " + common + ">" + f.options.map((o) =>
+        '<option value="' + esc(o[0]) + '"' + (String(f.value) === String(o[0]) ? " selected" : "") + ">" + esc(o[1]) + "</option>").join("") + "</select>";
+    } else {
+      control = "<input " + common + ' type="' + (f.type || "text") + '"' +
+        (f.type === "url" ? ' inputmode="url" spellcheck="false"' : "") +
+        (f.type === "number" ? ' inputmode="numeric" min="' + (f.min != null ? f.min : 0) + '"' + (f.max != null ? ' max="' + f.max + '"' : "") : "") +
+        ' autocomplete="off" placeholder="' + esc(f.placeholder || "") + '" value="' + esc(f.value == null ? "" : f.value) + '">';
+    }
+    const wrap = '<div><label class="lab" for="' + id + '">' + esc(f.label) + "</label>" + control +
+      (f.hint ? '<div class="px faint" style="margin-top:5px;line-height:1.4">' + esc(f.hint) + "</div>" : "") + "</div>";
+    return f.half ? wrap : wrap;
+  }
+}
+
+function readForm() {
+  const out = {};
+  modalSubmit.fields.forEach((f) => {
+    const el = $("#f_" + f.name);
+    if (!el) return;
+    out[f.name] = f.type === "number" ? Number(el.value || 0) : el.value.trim();
+  });
+  return out;
+}
+
+function closeModal() {
+  modalSubmit = null;
+  $("#modal").close();
+}
+
+function confirmThen(message, fn) {
+  if (window.confirm(message)) fn();
+}
+
+/* ============================================================
+   Actions
+   ============================================================ */
+const ACTIONS = {
+  view(id) { ui.view = id; saveUI(); syncHash(); render(); window.scrollTo({ top: 0, behavior: "instant" }); },
+
+  track(id) { state.activeTrack = id; ui.view = ui.view === "ref" ? "overview" : ui.view; saveUI(); commit(null, { render: true }); },
+
+  "goto-step"(id) {
+    ui.view = "plan"; saveUI(); syncHash(); render();
+    requestAnimationFrame(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  },
+
+  "goto-phase"(id) {
+    ui.view = "plan"; ui.open[id] = true; saveUI(); syncHash(); render();
+    requestAnimationFrame(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  },
+
+  "toggle-phase"(id) { ui.open[id] = !ui.open[id]; saveUI(); render(); },
+  "expand-all"() { const tr = activeTrack(); (tr.steps || []).forEach((s) => (s.phases || []).forEach((p) => { ui.open[p.id] = true; })); saveUI(); render(); },
+  "collapse-all"() { ui.open = {}; saveUI(); render(); },
+  filter(id) { ui.planFilter = id; saveUI(); render(); },
+  "clear-filter"() { ui.planFilter = "all"; ui.q = ""; saveUI(); render(); },
+  "course-filter"(id) { ui.courseFilter = id; saveUI(); render(); },
+  "res-type"(id) { ui.resType = id; saveUI(); render(); },
+  "res-tag"(id) { ui.resTag = ui.resTag === id ? "" : id; saveUI(); render(); },
+  "res-clear"() { ui.resType = "all"; ui.resTag = ""; saveUI(); render(); },
+
+  /* ---------- tasks ---------- */
+  toggle(id, el) {
+    const hit = findTask(id);
+    if (!hit) return;
+    const now = !hit.task.done;
+    hit.task.done = now;
+    hit.task.doneAt = now ? todayISO() : null;
+    if (now && el) xpBurst(el, "+1 XP");
+    commit();
+  },
+
+  "add-task"(id) {
+    const hit = findSection(id);
+    if (!hit) return;
+    openForm({
+      title: "Нова задача",
+      submit: "Додати",
+      fields: [
+        { name: "text", label: "Задача", type: "textarea", rows: 3, placeholder: "Що конкретно зробити…", hint: "Можна `код` і **жирний**." },
+        { name: "note", label: "Нотатка (не обов'язково)", type: "textarea", rows: 2, placeholder: "Чому це важливо, де матеріал…" }
+      ],
+      onSubmit(v) {
+        if (!v.text) return false;
+        hit.section.tasks.push({ id: uid("t"), text: v.text, note: v.note, done: false, doneAt: null });
+        commit();
+        toast("Задачу додано", "good");
+      }
+    });
+  },
+
+  "edit-task"(id) {
+    const hit = findTask(id);
+    if (!hit) return;
+    openForm({
+      title: "Задача",
+      destructive: true,
+      fields: [
+        { name: "text", label: "Задача", type: "textarea", rows: 3, value: hit.task.text },
+        { name: "note", label: "Нотатка", type: "textarea", rows: 2, value: hit.task.note || "" },
+        { name: "doneAt", label: "Дата виконання", type: "date", value: hit.task.doneAt || "", hint: "Порожньо = задача ще відкрита." }
+      ],
+      onSubmit(v) {
+        if (!v.text) return false;
+        hit.task.text = v.text;
+        hit.task.note = v.note;
+        hit.task.doneAt = v.doneAt || null;
+        hit.task.done = !!v.doneAt;
+        commit();
+      },
+      onDelete() { hit.section.tasks.splice(hit.index, 1); commit(); toast("Задачу видалено"); }
+    });
+  },
+
+  "del-task"(id) {
+    const hit = findTask(id);
+    if (!hit) return;
+    confirmThen("Видалити задачу «" + hit.task.text.slice(0, 60) + "»?", () => {
+      hit.section.tasks.splice(hit.index, 1);
+      commit();
+    });
+  },
+
+  /* ---------- sections ---------- */
+  "add-section"(id) {
+    const hit = findPhase(id);
+    if (!hit) return;
+    openForm({
+      title: "Новий блок",
+      submit: "Додати",
+      fields: [
+        { name: "title", label: "Назва блоку", placeholder: "Напр. Блок 11 — Профілювання" },
+        { name: "hours", label: "Годин", type: "number", value: 0 },
+        { name: "note", label: "Опис / матеріал", type: "textarea", rows: 2 },
+        { name: "checkpoint", label: "Контрольна точка", type: "textarea", rows: 2 }
+      ],
+      onSubmit(v) {
+        if (!v.title) return false;
+        hit.phase.sections.push({ id: uid("c"), title: v.title, hours: v.hours, note: v.note, checkpoint: v.checkpoint, tasks: [] });
+        ui.open[hit.phase.id] = true;
+        commit();
+      }
+    });
+  },
+
+  "edit-section"(id) {
+    const hit = findSection(id);
+    if (!hit) return;
+    openForm({
+      title: "Блок",
+      destructive: true,
+      fields: [
+        { name: "title", label: "Назва", value: hit.section.title },
+        { name: "hours", label: "Годин", type: "number", value: hit.section.hours || 0 },
+        { name: "note", label: "Опис / матеріал", type: "textarea", rows: 2, value: hit.section.note || "" },
+        { name: "checkpoint", label: "Контрольна точка", type: "textarea", rows: 2, value: hit.section.checkpoint || "" }
+      ],
+      onSubmit(v) {
+        if (!v.title) return false;
+        Object.assign(hit.section, { title: v.title, hours: v.hours, note: v.note, checkpoint: v.checkpoint });
+        commit();
+      },
+      onDelete() { hit.phase.sections.splice(hit.index, 1); commit(); toast("Блок видалено"); }
+    });
+  },
+
+  "del-section"(id) {
+    const hit = findSection(id);
+    if (!hit) return;
+    confirmThen("Видалити блок «" + hit.section.title + "» разом із " + hit.section.tasks.length + " задачами?", () => {
+      hit.phase.sections.splice(hit.index, 1);
+      commit();
+    });
+  },
+
+  /* ---------- phases ---------- */
+  "add-phase"(id) {
+    const hit = findStep(id);
+    if (!hit) return;
+    openForm({
+      title: "Нова фаза",
+      submit: "Додати",
+      fields: [
+        { name: "title", label: "Назва фази", placeholder: "Напр. Фаза 12 — Streaming UI" },
+        { name: "goal", label: "Мета фази", type: "textarea", rows: 2 },
+        { name: "hours", label: "Годин", type: "number", value: 0 },
+        { name: "kind", label: "Тип", type: "select", value: "phase", options: [["phase", "Фаза"], ["project", "Проєкт"]] },
+        { name: "checkpoint", label: "Контрольна точка", type: "textarea", rows: 2 }
+      ],
+      onSubmit(v) {
+        if (!v.title) return false;
+        const p = { id: uid("p"), title: v.title, goal: v.goal, hours: v.hours, kind: v.kind, note: "", checkpoint: v.checkpoint, materials: [], sections: [{ id: uid("c"), title: "Чекліст", hours: 0, note: "", checkpoint: "", tasks: [] }] };
+        hit.step.phases.push(p);
+        ui.open[p.id] = true;
+        commit();
+        toast("Фазу додано", "good");
+      }
+    });
+  },
+
+  "edit-phase"(id) {
+    const hit = findPhase(id);
+    if (!hit) return;
+    openForm({
+      title: "Фаза",
+      destructive: true,
+      fields: [
+        { name: "title", label: "Назва", value: hit.phase.title },
+        { name: "goal", label: "Мета", type: "textarea", rows: 2, value: hit.phase.goal || "" },
+        { name: "hours", label: "Годин", type: "number", value: hit.phase.hours || 0 },
+        { name: "kind", label: "Тип", type: "select", value: hit.phase.kind, options: [["phase", "Фаза"], ["project", "Проєкт"]] },
+        { name: "note", label: "Примітка", type: "textarea", rows: 2, value: hit.phase.note || "" },
+        { name: "checkpoint", label: "Контрольна точка", type: "textarea", rows: 2, value: hit.phase.checkpoint || "" }
+      ],
+      onSubmit(v) {
+        if (!v.title) return false;
+        Object.assign(hit.phase, { title: v.title, goal: v.goal, hours: v.hours, kind: v.kind, note: v.note, checkpoint: v.checkpoint });
+        commit();
+      },
+      onDelete() { hit.step.phases.splice(hit.index, 1); commit(); toast("Фазу видалено"); }
+    });
+  },
+
+  "del-phase"(id) {
+    const hit = findPhase(id);
+    if (!hit) return;
+    const c = countTasks(hit.phase);
+    confirmThen("Видалити фазу «" + hit.phase.title + "» разом із " + c.total + " задачами?", () => {
+      hit.step.phases.splice(hit.index, 1);
+      commit();
+    });
+  },
+
+  "add-step"() {
+    const tr = activeTrack();
+    openForm({
+      title: "Новий step",
+      submit: "Додати",
+      fields: [
+        { name: "tag", label: "Мітка", value: "Step " + ((tr.steps || []).length + 1) },
+        { name: "title", label: "Назва", placeholder: "Напр. Data engineering" },
+        { name: "sub", label: "Опис", type: "textarea", rows: 2 },
+        { name: "hours", label: "Годин", type: "number", value: 0 },
+        { name: "artifact", label: "Артефакт на виході", placeholder: "Що має вийти в результаті" }
+      ],
+      onSubmit(v) {
+        if (!v.title) return false;
+        tr.steps.push({ id: uid("s"), tag: v.tag || "Step", title: v.title, sub: v.sub, hours: v.hours, artifact: v.artifact, phases: [] });
+        commit();
+        toast("Step додано", "good");
+      }
+    });
+  },
+
+  /* ---------- materials ---------- */
+  "add-material"(id) {
+    const hit = findPhase(id);
+    if (!hit) return;
+    openForm({
+      title: "Матеріал фази",
+      submit: "Додати",
+      fields: [
+        { name: "t", label: "Назва", placeholder: "Напр. FastAPI docs" },
+        { name: "u", label: "Посилання", type: "url", placeholder: "https://…" },
+        { name: "n", label: "Примітка", placeholder: "Чим корисне" },
+        { name: "g", label: "Група", placeholder: "Напр. Foundations Library", hint: "Матеріали з однаковою групою показуються разом." },
+        { name: "alsoLib", label: "Додати також у «Матеріали»", type: "select", value: "yes", options: [["yes", "Так"], ["no", "Ні"]] }
+      ],
+      onSubmit(v) {
+        if (!v.t) return false;
+        hit.phase.materials.push({ id: uid("m"), t: v.t, u: v.u, n: v.n, g: v.g });
+        if (v.alsoLib === "yes") {
+          state.resources.push({ id: uid("r"), title: v.t, url: v.u, type: "doc", tags: [], note: v.n || "", added: todayISO(), starred: false });
+        }
+        commit();
+        toast("Матеріал додано", "good");
+      }
+    });
+  },
+
+  "del-material"(id) {
+    const hit = findMaterial(id);
+    if (!hit) return;
+    hit.phase.materials.splice(hit.index, 1);
+    commit();
+  }
+};
+
+/* ---------- courses / resources / journal / tracks / data ---------- */
+Object.assign(ACTIONS, {
+  "add-course"() {
+    openForm({
+      title: "Новий курс",
+      submit: "Додати",
+      fields: [
+        { name: "title", label: "Назва курсу", placeholder: "Напр. Develop AI agents on Azure" },
+        { name: "provider", label: "Платформа", placeholder: "Microsoft Learn, Coursera, YouTube…" },
+        { name: "url", label: "Посилання", type: "url", placeholder: "https://…" },
+        { name: "status", label: "Статус", type: "select", value: "planned", options: Object.keys(STATUS).map((k) => [k, STATUS[k].label]) },
+        { name: "hours", label: "Годин", type: "number", value: 0 },
+        { name: "progress", label: "Прогрес, %", type: "number", value: 0, max: 100 },
+        { name: "phase", label: "Прив'язка до фази", placeholder: "Напр. Фаза 7" },
+        { name: "tags", label: "Теги", placeholder: "через кому: azure, agents" },
+        { name: "note", label: "Нотатка", type: "textarea", rows: 2 }
+      ],
+      onSubmit(v) {
+        if (!v.title) return false;
+        state.courses.push({
+          id: uid("c"), title: v.title, provider: v.provider, url: v.url,
+          status: v.status, hours: v.hours, progress: clamp(v.progress),
+          phase: v.phase, note: v.note, tags: splitTags(v.tags), added: todayISO()
+        });
+        commit();
+        toast("Курс додано", "good");
+      }
+    });
+  },
+
+  "edit-course"(id) {
+    const i = state.courses.findIndex((c) => c.id === id);
+    if (i < 0) return;
+    const c = state.courses[i];
+    openForm({
+      title: "Курс",
+      destructive: true,
+      fields: [
+        { name: "title", label: "Назва курсу", value: c.title },
+        { name: "provider", label: "Платформа", value: c.provider || "" },
+        { name: "url", label: "Посилання", type: "url", value: c.url || "" },
+        { name: "status", label: "Статус", type: "select", value: c.status, options: Object.keys(STATUS).map((k) => [k, STATUS[k].label]) },
+        { name: "hours", label: "Годин", type: "number", value: c.hours || 0 },
+        { name: "progress", label: "Прогрес, %", type: "number", value: c.progress || 0, max: 100 },
+        { name: "phase", label: "Прив'язка до фази", value: c.phase || "" },
+        { name: "tags", label: "Теги", value: (c.tags || []).join(", ") },
+        { name: "note", label: "Нотатка", type: "textarea", rows: 2, value: c.note || "" }
+      ],
+      onSubmit(v) {
+        if (!v.title) return false;
+        Object.assign(c, {
+          title: v.title, provider: v.provider, url: v.url, status: v.status,
+          hours: v.hours, progress: clamp(v.progress), phase: v.phase,
+          tags: splitTags(v.tags), note: v.note
+        });
+        if (c.status === "done") c.progress = 100;
+        commit();
+      },
+      onDelete() { state.courses.splice(i, 1); commit(); toast("Курс видалено"); }
+    });
+  },
+
+  "del-course"(id) {
+    const i = state.courses.findIndex((c) => c.id === id);
+    if (i < 0) return;
+    confirmThen("Видалити курс «" + state.courses[i].title + "»?", () => { state.courses.splice(i, 1); commit(); });
+  },
+
+  "add-res"() {
+    openForm({
+      title: "Новий матеріал",
+      submit: "Додати",
+      fields: [
+        { name: "title", label: "Назва", placeholder: "Напр. The Illustrated Transformer" },
+        { name: "url", label: "Посилання", type: "url", placeholder: "https://…" },
+        { name: "type", label: "Тип", type: "select", value: "article", options: Object.keys(RES_TYPES).map((k) => [k, RES_TYPES[k]]) },
+        { name: "tags", label: "Теги", placeholder: "через кому: rag, foundations" },
+        { name: "note", label: "Нотатка", type: "textarea", rows: 2, placeholder: "Чим корисне, що звідти взяти" }
+      ],
+      onSubmit(v) {
+        if (!v.title && !v.url) return false;
+        state.resources.push({
+          id: uid("r"), title: v.title || hostOf(safeUrl(v.url)) || "Без назви",
+          url: v.url, type: v.type, tags: splitTags(v.tags), note: v.note,
+          added: todayISO(), starred: false
+        });
+        commit();
+        toast("Матеріал додано", "good");
+      }
+    });
+  },
+
+  "edit-res"(id) {
+    const i = state.resources.findIndex((r) => r.id === id);
+    if (i < 0) return;
+    const r = state.resources[i];
+    openForm({
+      title: "Матеріал",
+      destructive: true,
+      fields: [
+        { name: "title", label: "Назва", value: r.title },
+        { name: "url", label: "Посилання", type: "url", value: r.url || "" },
+        { name: "type", label: "Тип", type: "select", value: r.type, options: Object.keys(RES_TYPES).map((k) => [k, RES_TYPES[k]]) },
+        { name: "tags", label: "Теги", value: (r.tags || []).join(", ") },
+        { name: "note", label: "Нотатка", type: "textarea", rows: 2, value: r.note || "" }
+      ],
+      onSubmit(v) {
+        if (!v.title && !v.url) return false;
+        Object.assign(r, { title: v.title, url: v.url, type: v.type, tags: splitTags(v.tags), note: v.note });
+        commit();
+      },
+      onDelete() { state.resources.splice(i, 1); commit(); toast("Матеріал видалено"); }
+    });
+  },
+
+  "del-res"(id) {
+    const i = state.resources.findIndex((r) => r.id === id);
+    if (i < 0) return;
+    confirmThen("Видалити «" + state.resources[i].title + "» з бібліотеки?", () => { state.resources.splice(i, 1); commit(); });
+  },
+
+  "star-res"(id) {
+    const r = state.resources.find((x) => x.id === id);
+    if (!r) return;
+    r.starred = !r.starred;
+    commit();
+  },
+
+  "add-log"() {
+    openForm({
+      title: "Запис у журнал",
+      submit: "Зберегти",
+      fields: [
+        { name: "date", label: "Дата", type: "date", value: todayISO() },
+        { name: "text", label: "Що сьогодні", type: "textarea", rows: 6, placeholder: "Що не зрозумів, який приклад допоміг, де здивувався…" }
+      ],
+      onSubmit(v) {
+        if (!v.text) return false;
+        state.log.push({ id: uid("l"), date: v.date || todayISO(), text: v.text });
+        commit();
+        toast("Записано", "good");
+      }
+    });
+  },
+
+  "edit-log"(id) {
+    const i = state.log.findIndex((l) => l.id === id);
+    if (i < 0) return;
+    const l = state.log[i];
+    openForm({
+      title: "Запис",
+      destructive: true,
+      fields: [
+        { name: "date", label: "Дата", type: "date", value: l.date },
+        { name: "text", label: "Текст", type: "textarea", rows: 8, value: l.text }
+      ],
+      onSubmit(v) {
+        if (!v.text) return false;
+        l.date = v.date || l.date;
+        l.text = v.text;
+        commit();
+      },
+      onDelete() { state.log.splice(i, 1); commit(); toast("Запис видалено"); }
+    });
+  },
+
+  "del-log"(id) {
+    const i = state.log.findIndex((l) => l.id === id);
+    if (i < 0) return;
+    confirmThen("Видалити запис від " + fmtShort(state.log[i].date) + "?", () => { state.log.splice(i, 1); commit(); });
+  },
+
+  "add-track"() {
+    openForm({
+      title: "Новий трек",
+      submit: "Створити",
+      fields: [
+        { name: "title", label: "Назва треку", placeholder: "Напр. System Design" },
+        { name: "subtitle", label: "Опис", type: "textarea", rows: 2 },
+        { name: "start", label: "Старт", type: "date", value: todayISO() },
+        { name: "hours", label: "Годин загалом", type: "number", value: 0 },
+        { name: "budget", label: "Бюджет часу", placeholder: "Напр. 6 год/тиждень" }
+      ],
+      onSubmit(v) {
+        if (!v.title) return false;
+        const t = blankTrack(v.title);
+        t.subtitle = v.subtitle; t.start = v.start || todayISO(); t.hours = v.hours; t.budget = v.budget;
+        state.tracks.push(t);
+        state.activeTrack = t.id;
+        ui.view = "plan";
+        saveUI();
+        commit();
+        toast("Трек створено — додай перші фази", "good");
+      }
+    });
+  },
+
+  "edit-track"() {
+    const t = activeTrack();
+    openForm({
+      title: "Трек",
+      destructive: state.tracks.length > 1,
+      fields: [
+        { name: "title", label: "Назва", value: t.title },
+        { name: "subtitle", label: "Опис", type: "textarea", rows: 2, value: t.subtitle || "" },
+        { name: "start", label: "Старт", type: "date", value: t.start || "" },
+        { name: "hours", label: "Годин загалом", type: "number", value: t.hours || 0 },
+        { name: "budget", label: "Бюджет часу", value: t.budget || "" }
+      ],
+      onSubmit(v) {
+        if (!v.title) return false;
+        Object.assign(t, { title: v.title, subtitle: v.subtitle, start: v.start, hours: v.hours, budget: v.budget });
+        commit();
+      },
+      onDelete() {
+        if (state.tracks.length < 2) { toast("Останній трек видалити не можна", "bad"); return; }
+        state.tracks = state.tracks.filter((x) => x.id !== t.id);
+        state.activeTrack = state.tracks[0].id;
+        commit();
+        toast("Трек видалено");
+      }
+    });
+  },
+
+  /* ---------- data menu ---------- */
+  menu() {
+    const tr = activeTrack();
+    const c = countTasks(tr);
+    const modeLabel = store.mode === "cloud"
+      ? "Зміни зберігаються автоматично й доступні з будь-якого пристрою за цим посиланням."
+      : "Зберігається лише в цьому браузері. Роби експорт час від часу, щоб не втратити прогрес.";
+    $("#modalTitle").textContent = "Дані та трек";
+    $("#modalBody").innerHTML =
+      '<div class="col" style="gap:14px">' +
+        '<div class="card card--sunk" style="padding:12px 13px">' +
+          '<div class="px faint" style="margin-bottom:6px">Збереження</div>' +
+          '<p class="prose" style="font-size:13px;margin:0">' + esc(modeLabel) + "</p>" +
+        "</div>" +
+        '<div class="statgrid">' +
+          '<div class="stat"><div class="stat__k">Задач</div><div class="stat__v">' + c.done + "<small> / " + c.total + "</small></div></div>" +
+          '<div class="stat"><div class="stat__k">Курсів</div><div class="stat__v">' + state.courses.length + "</div></div>" +
+          '<div class="stat"><div class="stat__k">Матеріалів</div><div class="stat__v">' + state.resources.length + "</div></div>" +
+          '<div class="stat"><div class="stat__k">Записів</div><div class="stat__v">' + state.log.length + "</div></div>" +
+        "</div>" +
+        '<div class="col" style="gap:8px">' +
+          '<button class="btn" type="button" data-act="edit-track" style="justify-content:center">' + ico("pen") + "Налаштування треку</button>" +
+          '<button class="btn" type="button" data-act="export" style="justify-content:center">' + ico("down") + "Експорт у JSON</button>" +
+          '<button class="btn" type="button" data-act="import" style="justify-content:center">' + ico("up") + "Імпорт з JSON</button>" +
+          '<button class="btn btn--danger" type="button" data-act="reset" style="justify-content:center">' + ico("warn") + "Скинути до вихідного плану</button>" +
+        "</div>" +
+      "</div>";
+    $("#modalFoot").innerHTML = '<span class="spacer"></span><button class="btn btn--sm btn--ghost" type="button" data-modal="cancel">Закрити</button>';
+    modalSubmit = null;
+    if (!$("#modal").open) $("#modal").showModal();
+  },
+
+  async export() {
+    const json = JSON.stringify(state, null, 2);
+    const filename = "track-runner-" + todayISO() + ".json";
+    try {
+      const dl = window.claude && typeof window.claude.use === "function" ? await window.claude.use("downloads") : null;
+      if (dl) {
+        await dl.save({ filename: filename, data: json });
+        toast("Файл збережено", "good");
+        return;
+      }
+    } catch (err) {
+      if (err && err.code === "user_declined") return;
+    }
+    try {
+      await navigator.clipboard.writeText(json);
+      toast("Завантаження недоступне — JSON скопійовано в буфер обміну", "good");
+    } catch {
+      toast("Не вдалося ні зберегти файл, ні скопіювати JSON", "bad");
+    }
+  },
+
+  import() { $("#fileInput").click(); },
+
+  reset() {
+    confirmThen("Скинути все до вихідного плану? Свої задачі, курси, матеріали і записи буде втрачено.", () => {
+      state = freshState();
+      ui.open = {};
+      saveUI();
+      closeModal();
+      commit();
+      toast("Скинуто до вихідного плану");
+    });
+  }
+});
+
+function clamp(n) { return Math.max(0, Math.min(100, Number(n) || 0)); }
+function splitTags(s) {
+  return String(s || "").split(",").map((x) => x.trim()).filter(Boolean).slice(0, 10);
+}
+
+/* ============================================================
+   Render root
+   ============================================================ */
+const VIEW_IDS = ["overview", "plan", "courses", "resources", "log", "ref"];
+
+function viewFromHash() {
+  const h = (location.hash || "").replace(/^#/, "");
+  return VIEW_IDS.includes(h) ? h : null;
+}
+function syncHash(replace) {
+  const target = "#" + ui.view;
+  if (location.hash === target) return;
+  if (replace) history.replaceState(null, "", target);
+  else history.pushState(null, "", target);
+}
+
+const VIEWS = {
+  overview: viewOverview,
+  plan: viewPlan,
+  courses: viewCourses,
+  resources: viewResources,
+  log: viewLog,
+  ref: viewRef
+};
+
+function render() {
+  if (!state.tracks.some((t) => t.id === state.activeTrack)) state.activeTrack = state.tracks[0].id;
+  renderRail();
+  const fn = VIEWS[ui.view] || viewOverview;
+  $("#view").innerHTML = fn();
+  document.title = activeTrack().title + " · Track Runner";
+}
+
+/* ============================================================
+   Theme
+   ============================================================ */
+const THEME_KEY = "track-runner.theme";
+function applyTheme(t) {
+  if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+  else document.documentElement.removeAttribute("data-theme");
+}
+function initTheme() {
+  let t = "system";
+  try { t = localStorage.getItem(THEME_KEY) || "system"; } catch { /* blocked storage */ }
+  applyTheme(t);
+  $("#btnTheme").addEventListener("click", () => {
+    let cur = "system";
+    try { cur = localStorage.getItem(THEME_KEY) || "system"; } catch { /* ignore */ }
+    const next = cur === "system" ? "light" : cur === "light" ? "dark" : "system";
+    try { localStorage.setItem(THEME_KEY, next); } catch { /* ignore */ }
+    applyTheme(next);
+    toast(next === "system" ? "Тема: як у системі" : next === "light" ? "Тема: світла" : "Тема: темна");
+  });
+}
+
+/* ============================================================
+   Events
+   ============================================================ */
+function wire() {
+  /* delegated clicks */
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest("[data-act]");
+    if (!el) return;
+    if (el.matches('input[type="checkbox"]') || el.matches('input[type="range"]')) return;
+    const act = el.dataset.act;
+    const fn = ACTIONS[act];
+    if (!fn) return;
+    e.preventDefault();
+    fn(el.dataset.id, el);
+  });
+
+  /* checkboxes */
+  document.addEventListener("change", (e) => {
+    const el = e.target;
+    if (el.matches('input[type="checkbox"][data-act="toggle"]')) ACTIONS.toggle(el.dataset.id, el);
+  });
+
+  /* range sliders — live bar, debounced save */
+  let rangeTimer = null;
+  document.addEventListener("input", (e) => {
+    const el = e.target;
+
+    if (el.matches('input[type="range"][data-act="course-progress"]')) {
+      const c = state.courses.find((x) => x.id === el.dataset.id);
+      if (!c) return;
+      c.progress = clamp(el.value);
+      if (c.progress === 100 && c.status !== "done") c.status = "done";
+      else if (c.progress > 0 && c.progress < 100 && c.status === "planned") c.status = "active";
+      const card = el.closest(".ccard");
+      const fill = card && card.querySelector(".bar__fill");
+      if (fill) fill.style.width = c.progress + "%";
+      const pctEl = card && card.querySelector('.px[style*="clay-ink"]');
+      if (pctEl) pctEl.textContent = c.progress + "%";
+      clearTimeout(rangeTimer);
+      rangeTimer = setTimeout(() => commit(), 500);
+      return;
+    }
+
+    if (el.id === "planSearch") {
+      ui.q = el.value;
+      saveUI();
+      clearTimeout(rangeTimer);
+      rangeTimer = setTimeout(() => {
+        const caret = el.selectionStart;
+        render();
+        const next = $("#planSearch");
+        if (next) { next.focus(); try { next.setSelectionRange(caret, caret); } catch { /* ignore */ } }
+      }, 220);
+    }
+  });
+
+  /* back / forward move between sections */
+  window.addEventListener("popstate", () => {
+    const v = viewFromHash();
+    if (v && v !== ui.view) { ui.view = v; saveUI(); render(); }
+  });
+
+  /* keep the rail parked right under the topbar at any size */
+  const bar = $(".topbar");
+  const syncBarHeight = () => {
+    document.documentElement.style.setProperty("--topbar-h", bar.offsetHeight + "px");
+  };
+  syncBarHeight();
+  if (window.ResizeObserver) new ResizeObserver(syncBarHeight).observe(bar);
+  else window.addEventListener("resize", syncBarHeight);
+
+  /* topbar */
+  $("#btnMenu").addEventListener("click", () => ACTIONS.menu());
+  $("#btnAddTrack").addEventListener("click", () => ACTIONS["add-track"]());
+
+  /* modal buttons */
+  $("#modalFoot").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-modal]");
+    if (!b) return;
+    e.preventDefault();
+    handleModal(b.dataset.modal);
+  });
+  $("#modalClose").addEventListener("click", () => closeModal());
+  $("#modalForm").addEventListener("submit", (e) => { e.preventDefault(); handleModal("ok"); });
+  $("#modal").addEventListener("close", () => { modalSubmit = null; });
+  $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
+
+  /* import */
+  $("#fileInput").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const parsed = migrate(JSON.parse(await file.text()));
+      if (!parsed) throw new Error("shape");
+      state = parsed;
+      ui.open = {};
+      saveUI();
+      closeModal();
+      commit();
+      toast("Дані імпортовано", "good");
+    } catch {
+      toast("Файл не схожий на експорт Track Runner — імпорт скасовано", "bad");
+    }
+  });
+
+  /* keyboard shortcuts */
+  document.addEventListener("keydown", (e) => {
+    if (e.target.matches("input,textarea,select")) {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && $("#modal").open) { e.preventDefault(); handleModal("ok"); }
+      return;
+    }
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    const map = { "1": "overview", "2": "plan", "3": "courses", "4": "resources", "5": "log", "6": "ref" };
+    if (map[k]) { ACTIONS.view(map[k]); return; }
+    if (k === "/" && ui.view === "plan") { e.preventDefault(); const s = $("#planSearch"); if (s) s.focus(); }
+  });
+
+  /* last chance to flush before the tab goes away */
+  window.addEventListener("beforeunload", () => { if (store.pending) store.writeLocal(state); });
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden" && store.pending) store.flush(); });
+}
+
+function handleModal(kind) {
+  if (kind === "cancel") { closeModal(); return; }
+  if (!modalSubmit) { closeModal(); return; }
+  if (kind === "delete") {
+    if (!modalSubmit.onDelete) return;
+    if (!window.confirm("Видалити безповоротно?")) return;
+    const fn = modalSubmit.onDelete;
+    closeModal();
+    fn();
+    return;
+  }
+  if (kind === "ok") {
+    const values = readForm();
+    const fn = modalSubmit.onSubmit;
+    if (fn && fn(values) === false) {
+      const empty = $$("#modalBody input, #modalBody textarea").find((el) => !el.value.trim());
+      if (empty) empty.focus();
+      toast("Заповни назву — без неї запис не збережеться", "bad");
+      return;
+    }
+    closeModal();
+  }
+}
+
+/* ============================================================
+   Boot
+   ============================================================ */
+(async function boot() {
+  loadUI();
+  initTheme();
+  wire();
+
+  await store.init();
+
+  const local = store.readLocal();
+  const remote = store.mode === "cloud" ? await store.readRemote() : null;
+
+  if (remote && local) {
+    state = (remote.updatedAt || "") >= (local.updatedAt || "") ? remote : local;
+  } else if (remote) {
+    state = remote;
+  } else if (local) {
+    state = local;
+  } else {
+    state = freshState();
+    store.writeLocal(state);
+  }
+
+  setSaveChip(store.mode === "cloud" ? "saved" : "local",
+    store.mode === "cloud" ? "Збережено" : "На цьому пристрої");
+
+  ui.view = viewFromHash() || ui.view;
+  syncHash(true);
+  render();
+
+  if (store.mode === "local") {
+    setTimeout(() => toast("Прогрес зберігається в цьому браузері. Час від часу роби експорт із меню.", "good"), 900);
+  }
+})();
+</script>
