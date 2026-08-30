@@ -795,6 +795,13 @@ dialog.modal{
   max-height: min(86dvh, 760px);
   overscroll-behavior: contain;
 }
+dialog.modal--sm{ width: min(430px, calc(100vw - 28px)); }
+.confirmrow{ display:flex; gap: 11px; align-items:flex-start; }
+.confirmrow__ico{ flex:0 0 auto; color: var(--rust); margin-top: 2px; }
+.confirmrow__ico svg{ width: 18px; height: 18px; display:block; }
+.confirmrow p{ font-size: 13.5px; line-height: 1.55; }
+.btn--solid-danger{ background: var(--rust); color: #fff; }
+.btn--solid-danger:hover{ background: color-mix(in srgb, var(--rust) 82%, #000); color: #fff; }
 dialog.modal::backdrop{ background: color-mix(in srgb, #100E0B 62%, transparent); backdrop-filter: blur(2px); }
 .modal__head{
   display:flex; align-items:center; justify-content:space-between; gap:10px;
@@ -948,6 +955,25 @@ dialog.modal::backdrop{ background: color-mix(in srgb, #100E0B 62%, transparent)
     <div class="modal__body" id="modalBody"></div>
     <div class="modal__foot" id="modalFoot"></div>
   </form>
+</dialog>
+
+<dialog class="modal modal--sm" id="confirmDlg" aria-labelledby="confirmTitle" aria-describedby="confirmMsg">
+  <div class="modal__head">
+    <h2 class="modal__title" id="confirmTitle">Підтвердь дію</h2>
+  </div>
+  <div class="modal__body">
+    <div class="confirmrow">
+      <span class="confirmrow__ico" aria-hidden="true">
+        <svg viewBox="0 0 16 16" shape-rendering="crispEdges" fill="currentColor"><path d="M7 1h2v2H7zM6 3h4v6H6zM7 11h2v2H7zM5 5h1v6H5zM10 5h1v6h-1z"/></svg>
+      </span>
+      <p id="confirmMsg"></p>
+    </div>
+  </div>
+  <div class="modal__foot">
+    <span class="spacer"></span>
+    <button class="btn btn--sm btn--ghost" type="button" data-confirm="no">Скасувати</button>
+    <button class="btn btn--sm btn--solid-danger" type="button" data-confirm="yes" id="confirmYes">Видалити</button>
+  </div>
 </dialog>
 
 <input type="file" id="fileInput" accept="application/json,.json" class="sr" tabindex="-1" aria-hidden="true">
@@ -1845,6 +1871,13 @@ const LOCALE = "uk-UA";
 const dfShort = new Intl.DateTimeFormat(LOCALE, { day: "2-digit", month: "2-digit" });
 const dfLong = new Intl.DateTimeFormat(LOCALE, { day: "numeric", month: "long", year: "numeric" });
 const nf = new Intl.NumberFormat(LOCALE);
+
+const pluralRules = new Intl.PluralRules(LOCALE);
+/* 1 задача · 2 задачі · 5 задач */
+function nplural(n, one, few, many) {
+  const k = pluralRules.select(n);
+  return nf.format(n) + " " + (k === "one" ? one : k === "few" ? few : many);
+}
 
 function parseISO(s) {
   if (!s) return null;
@@ -2989,7 +3022,10 @@ function openForm(opts) {
   modalSubmit = {
     fields: opts.fields,
     onSubmit: opts.onSubmit,
-    onDelete: opts.onDelete
+    onDelete: opts.onDelete,
+    subject: opts.subject || "",
+    deleteMessage: opts.deleteMessage || "",
+    deleteTitle: opts.deleteTitle || ""
   };
   if (!dlg.open) dlg.showModal();
   const first = $("#modalBody").querySelector("input,textarea,select");
@@ -3031,8 +3067,38 @@ function closeModal() {
   $("#modal").close();
 }
 
-function confirmThen(message, fn) {
-  if (window.confirm(message)) fn();
+/* The artifact page runs sandboxed, where window.confirm() is ignored and
+   silently returns false — every destructive action would quietly do nothing.
+   So confirmation is an in-page dialog, which the sandbox does allow. */
+let confirmResolve = null;
+
+function askConfirm(opts) {
+  const dlg = $("#confirmDlg");
+  $("#confirmTitle").textContent = (opts && opts.title) || "Підтвердь дію";
+  $("#confirmMsg").textContent = (opts && opts.message) || "";
+  const yes = $("#confirmYes");
+  yes.textContent = (opts && opts.confirm) || "Видалити";
+  return new Promise((resolve) => {
+    confirmResolve = resolve;
+    if (!dlg.open) dlg.showModal();
+    yes.focus();
+  });
+}
+
+function settleConfirm(answer) {
+  const dlg = $("#confirmDlg");
+  const resolve = confirmResolve;
+  confirmResolve = null;
+  if (dlg.open) dlg.close();
+  if (resolve) resolve(answer);
+}
+
+function confirmThen(message, fn, opts) {
+  askConfirm({
+    message: message,
+    title: opts && opts.title,
+    confirm: opts && opts.confirm
+  }).then((ok) => { if (ok) fn(); });
 }
 
 /* ============================================================
@@ -3115,6 +3181,8 @@ const ACTIONS = {
     openForm({
       title: "Задача",
       destructive: true,
+      subject: hit.task.text.slice(0, 90),
+      deleteTitle: "Видалити задачу",
       fields: [
         { name: "text", label: "Задача", type: "textarea", rows: 3, value: hit.task.text },
         { name: "note", label: "Нотатка", type: "textarea", rows: 2, value: hit.task.note || "" },
@@ -3135,10 +3203,14 @@ const ACTIONS = {
   "del-task"(id) {
     const hit = findTask(id);
     if (!hit) return;
-    confirmThen("Видалити задачу «" + hit.task.text.slice(0, 60) + "»?", () => {
-      hit.section.tasks.splice(hit.index, 1);
-      commit();
-    });
+    confirmThen(
+      "Видалити задачу «" + hit.task.text.slice(0, 90) + "»?",
+      () => {
+        hit.section.tasks.splice(hit.index, 1);
+        commit();
+      },
+      { title: "Видалити задачу" }
+    );
   },
 
   /* ---------- sections ---------- */
@@ -3169,6 +3241,9 @@ const ACTIONS = {
     openForm({
       title: "Блок",
       destructive: true,
+      deleteTitle: "Видалити блок",
+      deleteMessage: "Видалити блок «" + hit.section.title + "» разом із усім вмістом? Це " +
+        nplural(hit.section.tasks.length, "задача", "задачі", "задач") + ".",
       fields: [
         { name: "title", label: "Назва", value: hit.section.title },
         { name: "hours", label: "Годин", type: "number", value: hit.section.hours || 0 },
@@ -3187,10 +3262,16 @@ const ACTIONS = {
   "del-section"(id) {
     const hit = findSection(id);
     if (!hit) return;
-    confirmThen("Видалити блок «" + hit.section.title + "» разом із " + hit.section.tasks.length + " задачами?", () => {
-      hit.phase.sections.splice(hit.index, 1);
-      commit();
-    });
+    confirmThen(
+      "Видалити блок «" + hit.section.title + "» разом із усім вмістом? Це " +
+      nplural(hit.section.tasks.length, "задача", "задачі", "задач") + ".",
+      () => {
+        hit.phase.sections.splice(hit.index, 1);
+        commit();
+        toast("Блок видалено");
+      },
+      { title: "Видалити блок" }
+    );
   },
 
   /* ---------- phases ---------- */
@@ -3224,6 +3305,8 @@ const ACTIONS = {
     openForm({
       title: "Фаза",
       destructive: true,
+      deleteTitle: "Видалити фазу",
+      deleteMessage: phaseDeletePrompt(hit.phase),
       fields: [
         { name: "title", label: "Назва", value: hit.phase.title },
         { name: "goal", label: "Мета", type: "textarea", rows: 2, value: hit.phase.goal || "" },
@@ -3250,17 +3333,16 @@ const ACTIONS = {
   "del-phase"(id) {
     const hit = findPhase(id);
     if (!hit) return;
-    const c = countTasks(hit.phase);
     confirmThen(
-      "Видалити фазу «" + hit.phase.title + "» разом із " + c.total +
-      " задачами (" + c.done + " закритих)?",
+      phaseDeletePrompt(hit.phase),
       () => {
         delete ui.open[hit.phase.id];
         hit.step.phases.splice(hit.index, 1);
         saveUI();
         commit();
         toast("Фазу видалено");
-      }
+      },
+      { title: "Видалити фазу" }
     );
   },
 
@@ -3270,6 +3352,8 @@ const ACTIONS = {
     openForm({
       title: "Step",
       destructive: true,
+      deleteTitle: "Видалити step",
+      deleteMessage: stepDeletePrompt(hit.step),
       fields: [
         { name: "tag", label: "Мітка", value: hit.step.tag || "" },
         { name: "title", label: "Назва", value: hit.step.title },
@@ -3292,13 +3376,7 @@ const ACTIONS = {
   "del-step"(id) {
     const hit = findStep(id);
     if (!hit) return;
-    const c = countTasks(hit.step);
-    const phases = (hit.step.phases || []).length;
-    confirmThen(
-      "Видалити step «" + hit.step.title + "»? Разом із ним зникнуть " +
-      phases + " фаз і " + c.total + " задач (" + c.done + " закритих).",
-      () => removeStep(hit)
-    );
+    confirmThen(stepDeletePrompt(hit.step), () => removeStep(hit), { title: "Видалити step" });
   },
 
   "add-step"() {
@@ -3393,6 +3471,8 @@ Object.assign(ACTIONS, {
     openForm({
       title: "Курс",
       destructive: true,
+      subject: c.title,
+      deleteTitle: "Видалити курс",
       fields: [
         { name: "title", label: "Назва курсу", value: c.title },
         { name: "provider", label: "Платформа", value: c.provider || "" },
@@ -3421,7 +3501,11 @@ Object.assign(ACTIONS, {
   "del-course"(id) {
     const i = state.courses.findIndex((c) => c.id === id);
     if (i < 0) return;
-    confirmThen("Видалити курс «" + state.courses[i].title + "»?", () => { state.courses.splice(i, 1); commit(); });
+    confirmThen(
+      "Видалити курс «" + state.courses[i].title + "» зі списку?",
+      () => { state.courses.splice(i, 1); commit(); toast("Курс видалено"); },
+      { title: "Видалити курс" }
+    );
   },
 
   "add-res"() {
@@ -3455,6 +3539,8 @@ Object.assign(ACTIONS, {
     openForm({
       title: "Матеріал",
       destructive: true,
+      subject: r.title,
+      deleteTitle: "Видалити матеріал",
       fields: [
         { name: "title", label: "Назва", value: r.title },
         { name: "url", label: "Посилання", type: "url", value: r.url || "" },
@@ -3474,7 +3560,11 @@ Object.assign(ACTIONS, {
   "del-res"(id) {
     const i = state.resources.findIndex((r) => r.id === id);
     if (i < 0) return;
-    confirmThen("Видалити «" + state.resources[i].title + "» з бібліотеки?", () => { state.resources.splice(i, 1); commit(); });
+    confirmThen(
+      "Видалити «" + state.resources[i].title + "» з бібліотеки матеріалів?",
+      () => { state.resources.splice(i, 1); commit(); toast("Матеріал видалено"); },
+      { title: "Видалити матеріал" }
+    );
   },
 
   "star-res"(id) {
@@ -3508,6 +3598,8 @@ Object.assign(ACTIONS, {
     openForm({
       title: "Запис",
       destructive: true,
+      deleteTitle: "Видалити запис",
+      deleteMessage: "Видалити запис журналу від " + fmtLong(l.date) + "? Скасувати цю дію не вийде.",
       fields: [
         { name: "date", label: "Дата", type: "date", value: l.date },
         { name: "text", label: "Текст", type: "textarea", rows: 8, value: l.text }
@@ -3525,7 +3617,11 @@ Object.assign(ACTIONS, {
   "del-log"(id) {
     const i = state.log.findIndex((l) => l.id === id);
     if (i < 0) return;
-    confirmThen("Видалити запис від " + fmtShort(state.log[i].date) + "?", () => { state.log.splice(i, 1); commit(); });
+    confirmThen(
+      "Видалити запис журналу від " + fmtLong(state.log[i].date) + "?",
+      () => { state.log.splice(i, 1); commit(); toast("Запис видалено"); },
+      { title: "Видалити запис" }
+    );
   },
 
   "add-track"() {
@@ -3558,6 +3654,10 @@ Object.assign(ACTIONS, {
     openForm({
       title: "Трек",
       destructive: state.tracks.length > 1,
+      deleteTitle: "Видалити трек",
+      deleteMessage: "Видалити трек «" + t.title + "» разом із усім планом? Це " +
+        nplural(countTasks(t).total, "задача", "задачі", "задач") +
+        ". Курси, матеріали і журнал залишаться — вони спільні для всіх треків.",
       fields: [
         { name: "title", label: "Назва", value: t.title },
         { name: "subtitle", label: "Опис", type: "textarea", rows: 2, value: t.subtitle || "" },
@@ -3636,16 +3736,33 @@ Object.assign(ACTIONS, {
   import() { $("#fileInput").click(); },
 
   reset() {
-    confirmThen("Скинути все до вихідного плану? Свої задачі, курси, матеріали і записи буде втрачено.", () => {
-      state = freshState();
-      ui.open = {};
-      saveUI();
-      closeModal();
-      commit();
-      toast("Скинуто до вихідного плану");
-    });
+    confirmThen(
+      "Усе повернеться до вихідного AI Engineer Track. Свої задачі, курси, матеріали і записи журналу буде втрачено — спочатку зроби експорт, якщо вони потрібні.",
+      () => {
+        state = freshState();
+        ui.open = {};
+        saveUI();
+        closeModal();
+        commit();
+        toast("Скинуто до вихідного плану");
+      },
+      { title: "Скинути все", confirm: "Скинути" }
+    );
   }
 });
+
+function phaseDeletePrompt(phase) {
+  const c = countTasks(phase);
+  return "Видалити фазу «" + phase.title + "» разом із усім вмістом? Це " +
+    nplural(c.total, "задача", "задачі", "задач") + ", з них закритих — " + c.done + ".";
+}
+
+function stepDeletePrompt(step) {
+  const c = countTasks(step);
+  return "Видалити step «" + step.title + "» разом із усім вмістом? Це " +
+    nplural((step.phases || []).length, "фаза", "фази", "фаз") + " і " +
+    nplural(c.total, "задача", "задачі", "задач") + ", з них закритих — " + c.done + ".";
+}
 
 function removeStep(hit) {
   (hit.step.phases || []).forEach((p) => { delete ui.open[p.id]; });
@@ -3823,6 +3940,16 @@ function wire() {
     handleModal(b.dataset.modal);
   });
   $("#modalClose").addEventListener("click", () => closeModal());
+
+  /* confirm dialog: buttons, Esc, and backdrop all resolve the promise */
+  const cdlg = $("#confirmDlg");
+  cdlg.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-confirm]");
+    if (b) { e.preventDefault(); settleConfirm(b.dataset.confirm === "yes"); return; }
+    if (e.target === cdlg) settleConfirm(false);
+  });
+  cdlg.addEventListener("cancel", (e) => { e.preventDefault(); settleConfirm(false); });
+  cdlg.addEventListener("close", () => { if (confirmResolve) settleConfirm(false); });
   $("#modalForm").addEventListener("submit", (e) => { e.preventDefault(); handleModal("ok"); });
   $("#modal").addEventListener("close", () => { modalSubmit = null; });
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
@@ -3853,6 +3980,7 @@ function wire() {
       return;
     }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if ($("#modal").open || $("#confirmDlg").open) return;
     const k = e.key.toLowerCase();
     const map = { "1": "overview", "2": "plan", "3": "courses", "4": "resources", "5": "log", "6": "ref" };
     if (map[k]) { ACTIONS.view(map[k]); return; }
@@ -3869,10 +3997,19 @@ function handleModal(kind) {
   if (!modalSubmit) { closeModal(); return; }
   if (kind === "delete") {
     if (!modalSubmit.onDelete) return;
-    if (!window.confirm("Видалити безповоротно?")) return;
     const fn = modalSubmit.onDelete;
-    closeModal();
-    fn();
+    const message = modalSubmit.deleteMessage ||
+      (modalSubmit.subject
+        ? "Видалити «" + modalSubmit.subject + "» безповоротно? Скасувати цю дію не вийде."
+        : "Видалити безповоротно? Скасувати цю дію не вийде.");
+    askConfirm({
+      title: modalSubmit.deleteTitle || "Видалити",
+      message: message
+    }).then((ok) => {
+      if (!ok) return;
+      closeModal();
+      fn();
+    });
     return;
   }
   if (kind === "ok") {
