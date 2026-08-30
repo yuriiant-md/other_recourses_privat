@@ -405,7 +405,8 @@ select.field{ background-color: var(--surface); color: var(--ink); }
   display:flex; flex-direction:column; gap: 20px;
 }
 .wrap{ width:100%; max-width: 1080px; }
-.view{ display:flex; flex-direction:column; gap: 20px; animation: fadein .22s ease-out; }
+.view{ display:flex; flex-direction:column; gap: 20px; }
+.view.is-new{ animation: fadein .22s ease-out; }
 @keyframes fadein{ from{ opacity:0; transform: translateY(4px) } }
 
 .viewhead{ display:flex; align-items: flex-end; justify-content:space-between; gap: 14px; flex-wrap: wrap; }
@@ -609,22 +610,32 @@ select.field{ background-color: var(--surface); color: var(--ink); }
 .phase{
   border:2px solid var(--line); background: var(--surface); box-shadow: var(--sh);
   scroll-margin-top: calc(var(--topbar-h, 54px) + 18px);
-  content-visibility: auto; contain-intrinsic-size: auto 64px;
 }
 .phase--project{ border-color: var(--clay); }
 .phase__head{
-  display:flex; align-items:center; gap: 11px;
-  width:100%; text-align:left; cursor:pointer;
-  padding: 12px 14px;
-  background: transparent; border:none;
+  display:flex; align-items:center; gap: 8px;
+  padding-right: 10px;
   transition: background-color .12s linear;
 }
 .phase__head:hover{ background: var(--surface-2); }
+.phase__toggle{
+  display:flex; align-items:center; gap: 11px;
+  flex: 1 1 auto; min-width: 0;
+  text-align:left; cursor:pointer;
+  padding: 12px 6px 12px 14px;
+  background: transparent; border:none; color: inherit;
+  transition: none;
+}
+.phase__acts{ display:flex; gap:2px; flex:0 0 auto; opacity:0; transition: opacity .12s linear; }
+.phase__head:hover .phase__acts, .phase__head:focus-within .phase__acts{ opacity:1; }
+@media (hover: none){ .phase__acts{ opacity:.6; } }
+.stepblock__acts{ display:flex; gap:2px; flex:0 0 auto; }
 .phase__caret{ flex:0 0 auto; width:14px; height:14px; color: var(--ink-3); transition: transform .18s steps(3,end); }
 .phase[data-open="true"] .phase__caret{ transform: rotate(90deg); }
-.phase__title{ flex:1 1 auto; min-width:0; }
-.phase__name{ font-family:"Alegreya",ui-serif,Georgia,serif; font-size: 17px; font-weight:600; line-height:1.25; }
-.phase__goal{ font-size: 12.5px; color: var(--ink-2); margin-top: 4px; max-width: 68ch; }
+.phase__toggle:focus-visible{ outline-offset: -2px; }
+.phase__title{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap: 4px; }
+.phase__name{ font-family:"Alegreya",ui-serif,Georgia,serif; font-size: 17px; font-weight:700; line-height:1.2; }
+.phase__goal{ font-size: 12.5px; color: var(--ink-2); line-height:1.45; max-width: 68ch; }
 .phase__right{ display:flex; align-items:center; gap: 10px; flex:0 0 auto; }
 .phase__ratio{ font-family:"IBM Plex Mono",monospace; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .phase__minibar{ width: 68px; }
@@ -2517,9 +2528,14 @@ function viewPlan() {
         '<h2 class="stepblock__name">' + esc(s.title) + "</h2>" +
         '<div class="row row--tight">' +
           (s.hours ? chip(hoursLabel(s.hours)) : "") +
-          chip(sc.done + "/" + sc.total) +
-          chip(sc.pct + "%", sc.pct === 100 ? "chip--done" : sc.pct > 0 ? "chip--doing" : "") +
-          '<button class="iconbtn" type="button" data-act="add-phase" data-id="' + esc(s.id) + '" aria-label="Додати фазу до ' + esc(s.title) + '">' + ico("plus") + "</button>" +
+          '<span class="chip" data-count="' + esc(s.id) + '">' + sc.done + "/" + sc.total + "</span>" +
+          '<span class="chip ' + (sc.pct === 100 ? "chip--done" : sc.pct > 0 ? "chip--doing" : "") +
+            '" data-pct="' + esc(s.id) + '">' + sc.pct + "%</span>" +
+          '<span class="stepblock__acts">' +
+            '<button class="iconbtn" type="button" data-act="add-phase" data-id="' + esc(s.id) + '" aria-label="Додати фазу до ' + esc(s.title) + '">' + ico("plus") + "</button>" +
+            '<button class="iconbtn" type="button" data-act="edit-step" data-id="' + esc(s.id) + '" aria-label="Змінити step ' + esc(s.title) + '">' + ico("pen") + "</button>" +
+            '<button class="iconbtn" type="button" data-act="del-step" data-id="' + esc(s.id) + '" aria-label="Видалити step ' + esc(s.title) + '">' + ico("trash") + "</button>" +
+          "</span>" +
         "</div>" +
         (s.sub ? '<p class="stepblock__art muted" style="width:100%">' + fmt(s.sub) + "</p>" : "") +
         (s.artifact ? '<div class="stepblock__art"><span class="px faint">Артефакт</span><b>' + esc(s.artifact) + "</b></div>" : "") +
@@ -2558,28 +2574,32 @@ function viewPlan() {
     const mats = renderMaterials(p);
 
     return '<article class="phase' + (p.kind === "project" ? " phase--project" : "") + '" id="' + esc(p.id) + '" data-open="' + open + '">' +
-      '<button class="phase__head" type="button" data-act="toggle-phase" data-id="' + esc(p.id) + '" aria-expanded="' + open + '">' +
-        '<span class="phase__caret">' + ico("chev") + "</span>" +
-        '<span class="phase__title">' +
-          '<span class="phase__name">' + (p.kind === "project" ? "🎯 " : "") + esc(p.title) + "</span>" +
-          (p.goal ? '<span class="phase__goal">' + fmt(p.goal) + "</span>" : "") +
+      '<div class="phase__head">' +
+        '<button class="phase__toggle" type="button" data-act="toggle-phase" data-id="' + esc(p.id) + '" aria-expanded="' + open + '" aria-controls="body-' + esc(p.id) + '">' +
+          '<span class="phase__caret">' + ico("chev") + "</span>" +
+          '<span class="phase__title">' +
+            '<span class="phase__name">' + (p.kind === "project" ? "🎯 " : "") + esc(p.title) + "</span>" +
+            (p.goal ? '<span class="phase__goal">' + fmt(p.goal) + "</span>" : "") +
+          "</span>" +
+          '<span class="phase__right">' +
+            (p.hours ? '<span class="chip">' + esc(hoursLabel(p.hours)) + "</span>" : "") +
+            '<span class="phase__ratio" data-count="' + esc(p.id) + '">' + c.done + "/" + c.total + "</span>" +
+            '<span class="phase__minibar" data-bar="' + esc(p.id) + '">' + bar(c.pct, "bar--sm") + "</span>" +
+          "</span>" +
+        "</button>" +
+        '<span class="phase__acts">' +
+          '<button class="iconbtn" type="button" data-act="edit-phase" data-id="' + esc(p.id) + '" aria-label="Змінити фазу ' + esc(p.title) + '">' + ico("pen") + "</button>" +
+          '<button class="iconbtn" type="button" data-act="del-phase" data-id="' + esc(p.id) + '" aria-label="Видалити фазу ' + esc(p.title) + '">' + ico("trash") + "</button>" +
         "</span>" +
-        '<span class="phase__right">' +
-          (p.hours ? '<span class="chip">' + esc(hoursLabel(p.hours)) + "</span>" : "") +
-          '<span class="phase__ratio">' + c.done + "/" + c.total + "</span>" +
-          '<span class="phase__minibar">' + bar(c.pct, "bar--sm") + "</span>" +
-        "</span>" +
-      "</button>" +
+      "</div>" +
       (open
-        ? '<div class="phase__inner">' + mats +
+        ? '<div class="phase__inner" id="body-' + esc(p.id) + '">' + mats +
             (p.note ? '<p class="section__note" style="padding:8px 14px 0">' + fmt(p.note) + "</p>" : "") +
             tasksHtml +
             (p.checkpoint ? checkpointHtml("Контрольна точка фази", p.checkpoint) : "") +
             '<div class="addline"><button class="btn btn--sm btn--ghost" type="button" data-act="add-section" data-id="' + esc(p.id) + '">' +
               ico("plus") + "Новий блок</button>" +
               '<button class="btn btn--sm btn--ghost" type="button" data-act="add-material" data-id="' + esc(p.id) + '">' + ico("link") + "Матеріал</button>" +
-              '<button class="btn btn--sm btn--ghost" type="button" data-act="edit-phase" data-id="' + esc(p.id) + '">' + ico("pen") + "Змінити</button>" +
-              '<button class="btn btn--sm btn--ghost btn--danger" type="button" data-act="del-phase" data-id="' + esc(p.id) + '">' + ico("trash") + "</button>" +
             "</div>" +
           "</div>"
         : "") +
@@ -2621,7 +2641,7 @@ function viewPlan() {
       '<div class="section__head">' +
         '<span class="section__name">' + esc(sec.title) + "</span>" +
         (sec.hours ? '<span class="px faint">' + esc(hoursLabel(sec.hours)) + "</span>" : "") +
-        '<span class="px faint">' + c.done + "/" + c.total + "</span>" +
+        '<span class="px faint" data-count="' + esc(sec.id) + '">' + c.done + "/" + c.total + "</span>" +
         '<span class="grow"></span>' +
         '<button class="iconbtn" type="button" data-act="add-task" data-id="' + esc(sec.id) + '" aria-label="Додати задачу в ' + esc(sec.title) + '" style="width:24px;height:24px">' + ico("plus") + "</button>" +
         '<button class="iconbtn" type="button" data-act="edit-section" data-id="' + esc(sec.id) + '" aria-label="Змінити блок" style="width:24px;height:24px">' + ico("pen") + "</button>" +
@@ -2893,6 +2913,64 @@ function findMaterial(id) {
   return null;
 }
 
+/* Any step / phase / section by id — used to refresh one counter in place. */
+function findNode(id) {
+  const st = findStep(id);
+  if (st) return st.step;
+  const ph = findPhase(id);
+  if (ph) return ph.phase;
+  const se = findSection(id);
+  if (se) return se.section;
+  return null;
+}
+
+/* Flip one task row without rebuilding the view around it. */
+function updateTaskRow(el, task) {
+  const row = el && el.closest(".task");
+  if (!row) return;
+  row.classList.toggle("is-done", task.done);
+  let date = row.querySelector(".task__date");
+  if (task.done) {
+    if (!date) {
+      date = document.createElement("span");
+      date.className = "task__date";
+      row.insertBefore(date, row.querySelector(".task__act"));
+    }
+    date.textContent = fmtShort(task.doneAt);
+  } else if (date) {
+    date.remove();
+  }
+}
+
+/* Repoint every counter, percentage and bar the page is currently showing. */
+function refreshCounters() {
+  $$("[data-count]").forEach((el) => {
+    const node = findNode(el.dataset.count);
+    if (!node) return;
+    const c = countTasks(node);
+    el.textContent = c.done + "/" + c.total;
+  });
+  $$("[data-pct]").forEach((el) => {
+    const node = findNode(el.dataset.pct);
+    if (!node) return;
+    const c = countTasks(node);
+    el.textContent = c.pct + "%";
+    el.classList.remove("chip--done", "chip--doing");
+    if (c.pct === 100) el.classList.add("chip--done");
+    else if (c.pct > 0) el.classList.add("chip--doing");
+  });
+  $$("[data-bar]").forEach((el) => {
+    const node = findNode(el.dataset.bar);
+    if (!node) return;
+    const c = countTasks(node);
+    const track = el.querySelector(".bar");
+    const fill = el.querySelector(".bar__fill");
+    if (fill) fill.style.width = c.pct + "%";
+    if (track) track.setAttribute("aria-valuenow", c.pct);
+  });
+  renderRail();
+}
+
 /* ============================================================
    Modal form builder
    ============================================================ */
@@ -2999,6 +3077,16 @@ const ACTIONS = {
     hit.task.done = now;
     hit.task.doneAt = now ? todayISO() : null;
     if (now && el) xpBurst(el, "+1 XP");
+    if (el) el.checked = now;
+
+    if (ui.view === "plan" && el) {
+      /* Ticking a box must not move the page under the cursor: patch the row
+         and the counters, leave the rest of the plan exactly where it is. */
+      updateTaskRow(el, hit.task);
+      refreshCounters();
+      store.queue();
+      return;
+    }
     commit();
   },
 
@@ -3149,7 +3237,13 @@ const ACTIONS = {
         Object.assign(hit.phase, { title: v.title, goal: v.goal, hours: v.hours, kind: v.kind, note: v.note, checkpoint: v.checkpoint });
         commit();
       },
-      onDelete() { hit.step.phases.splice(hit.index, 1); commit(); toast("Фазу видалено"); }
+      onDelete() {
+        delete ui.open[hit.phase.id];
+        hit.step.phases.splice(hit.index, 1);
+        saveUI();
+        commit();
+        toast("Фазу видалено");
+      }
     });
   },
 
@@ -3157,10 +3251,54 @@ const ACTIONS = {
     const hit = findPhase(id);
     if (!hit) return;
     const c = countTasks(hit.phase);
-    confirmThen("Видалити фазу «" + hit.phase.title + "» разом із " + c.total + " задачами?", () => {
-      hit.step.phases.splice(hit.index, 1);
-      commit();
+    confirmThen(
+      "Видалити фазу «" + hit.phase.title + "» разом із " + c.total +
+      " задачами (" + c.done + " закритих)?",
+      () => {
+        delete ui.open[hit.phase.id];
+        hit.step.phases.splice(hit.index, 1);
+        saveUI();
+        commit();
+        toast("Фазу видалено");
+      }
+    );
+  },
+
+  "edit-step"(id) {
+    const hit = findStep(id);
+    if (!hit) return;
+    openForm({
+      title: "Step",
+      destructive: true,
+      fields: [
+        { name: "tag", label: "Мітка", value: hit.step.tag || "" },
+        { name: "title", label: "Назва", value: hit.step.title },
+        { name: "sub", label: "Опис", type: "textarea", rows: 2, value: hit.step.sub || "" },
+        { name: "hours", label: "Годин", type: "number", value: hit.step.hours || 0 },
+        { name: "artifact", label: "Артефакт на виході", value: hit.step.artifact || "" }
+      ],
+      onSubmit(v) {
+        if (!v.title) return false;
+        Object.assign(hit.step, {
+          tag: v.tag || hit.step.tag, title: v.title, sub: v.sub,
+          hours: v.hours, artifact: v.artifact
+        });
+        commit();
+      },
+      onDelete() { removeStep(hit); }
     });
+  },
+
+  "del-step"(id) {
+    const hit = findStep(id);
+    if (!hit) return;
+    const c = countTasks(hit.step);
+    const phases = (hit.step.phases || []).length;
+    confirmThen(
+      "Видалити step «" + hit.step.title + "»? Разом із ним зникнуть " +
+      phases + " фаз і " + c.total + " задач (" + c.done + " закритих).",
+      () => removeStep(hit)
+    );
   },
 
   "add-step"() {
@@ -3509,6 +3647,14 @@ Object.assign(ACTIONS, {
   }
 });
 
+function removeStep(hit) {
+  (hit.step.phases || []).forEach((p) => { delete ui.open[p.id]; });
+  hit.track.steps.splice(hit.index, 1);
+  saveUI();
+  commit();
+  toast("Step видалено");
+}
+
 function clamp(n) { return Math.max(0, Math.min(100, Number(n) || 0)); }
 function splitTags(s) {
   return String(s || "").split(",").map((x) => x.trim()).filter(Boolean).slice(0, 10);
@@ -3539,12 +3685,37 @@ const VIEWS = {
   ref: viewRef
 };
 
+let renderedView = null;
+
 function render() {
   if (!state.tracks.some((t) => t.id === state.activeTrack)) state.activeTrack = state.tracks[0].id;
+
+  const y = window.scrollY;
+  const active = document.activeElement;
+  const keep = active && active.dataset && active.dataset.act
+    ? { act: active.dataset.act, id: active.dataset.id || "" }
+    : null;
+  const changedView = renderedView !== ui.view;
+
   renderRail();
   const fn = VIEWS[ui.view] || viewOverview;
   $("#view").innerHTML = fn();
+  renderedView = ui.view;
   document.title = activeTrack().title + " · Track Runner";
+
+  if (changedView) {
+    const view = $(".view");
+    if (view) view.classList.add("is-new");
+  } else {
+    /* same view rebuilt — hold the reader's place instead of snapping to top */
+    window.scrollTo(0, y);
+    if (keep) {
+      const again = document.querySelector(
+        '[data-act="' + keep.act + '"]' + (keep.id ? '[data-id="' + keep.id + '"]' : "")
+      );
+      if (again) again.focus({ preventScroll: true });
+    }
+  }
 }
 
 /* ============================================================
