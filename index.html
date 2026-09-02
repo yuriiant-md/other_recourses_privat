@@ -3715,21 +3715,42 @@ Object.assign(ACTIONS, {
   async export() {
     const json = JSON.stringify(state, null, 2);
     const filename = "track-runner-" + todayISO() + ".json";
-    try {
-      const dl = window.claude && typeof window.claude.use === "function" ? await window.claude.use("downloads") : null;
-      if (dl) {
-        await dl.save({ filename: filename, data: json });
-        toast("Файл збережено", "good");
-        return;
+
+    /* Which download path is even possible depends on where the page runs, so
+       branch on the environment — not on a thrown error. A sandboxed <a download>
+       fails silently, and reporting a save that never happened is worse than
+       offering the clipboard. */
+    const hosted = !!(window.claude && typeof window.claude.use === "function");
+
+    if (hosted) {
+      try {
+        const dl = await window.claude.use("downloads");
+        if (dl) {
+          await dl.save({ filename: filename, data: json });
+          toast("Файл збережено", "good");
+          return;
+        }
+      } catch (err) {
+        if (err && err.code === "user_declined") return;
       }
-    } catch (err) {
-      if (err && err.code === "user_declined") return;
+    } else {
+      const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      toast("Файл збережено: " + filename, "good");
+      return;
     }
+
     try {
       await navigator.clipboard.writeText(json);
       toast("Завантаження недоступне — JSON скопійовано в буфер обміну", "good");
     } catch {
-      toast("Не вдалося ні зберегти файл, ні скопіювати JSON", "bad");
+      toast("Не вдалося зберегти файл. Скопіюй дані вручну через консоль браузера.", "bad");
     }
   },
 
